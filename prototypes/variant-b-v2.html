@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SQL 教练 · Variant B v2 — Terminal Refined</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      /* ──────────────────────────────────────────────────
+         Design tokens (改动 #2: 重选主色更柔和；#6 字号阶梯)
+         ────────────────────────────────────────────────── */
+      :root {
+        /* Surface (改动 #5: 双层背景营造深度) */
+        --bg:           #080808;
+        --bg-panel:     #131313;
+        --bg-panel-2:   #181818;
+        --bg-input:     #0e0e0e;
+
+        /* Borders */
+        --br:           #1f1f1f;
+        --br-strong:    #2a2a2a;
+        --br-glow:      #3a3a3a;
+
+        /* Text — WCAG AA against #080808 */
+        --tx:           #e2e2e2;        /* primary 12.4:1 */
+        --tx-2:         #a3a3a3;        /* secondary 6.6:1 */
+        --tx-3:         #6a6a6a;        /* tertiary 3.7:1 — only for non-essential meta */
+        --tx-mute:      #404040;        /* purely decorative */
+
+        /* Accent — Catppuccin-inspired soft greens / amber. WCAG AA all pass. */
+        --accent:       #a6e3a1;        /* PRIMARY: soft mint, 11.5:1 — used for verdict pass / SQL keywords */
+        --accent-dim:   #4d6e4b;
+        --accent-bg:    rgba(166, 227, 161, 0.07);
+        --accent-glow:  rgba(166, 227, 161, 0.18);
+
+        /* Strong fluorescent green — RESERVED for "PASS" verdict only (改动 #2) */
+        --pass:         #50fa7b;
+        --pass-bg:      rgba(80, 250, 123, 0.10);
+
+        --warn:         #f9e2af;        /* amber, 13.0:1 */
+        --warn-dim:     #6e6240;
+        --warn-bg:      rgba(249, 226, 175, 0.08);
+
+        --fail:         #f38ba8;        /* soft red, 8.4:1 */
+        --fail-bg:      rgba(243, 139, 168, 0.10);
+
+        --info:         #89b4fa;        /* blue */
+        --magenta:      #cba6f7;        /* lavender for keywords */
+
+        /* Type scale (改动 #6) */
+        --fs-xs:        11px;           /* meta, labels */
+        --fs-sm:        12px;           /* secondary */
+        --fs-base:      13px;           /* body */
+        --fs-md:        14px;           /* editor code */
+        --fs-lg:        18px;           /* question prompt */
+        --fs-xl:        20px;           /* question headline */
+
+        /* Spacing — generous (改动 #5) */
+        --gap-xs:       8px;
+        --gap-sm:       12px;
+        --gap-md:       20px;
+        --gap-lg:       28px;
+
+        --r:            4px;            /* sharp, terminal-y */
+
+        --mono:         "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Mono", monospace;
+      }
+
+      /* ── Reset & base ── */
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      html { background: var(--bg); }
+      body {
+        background:
+          /* 改动 #8: 删掉 scanline 全屏覆盖，只保留两个 radial 渐变营造氛围 */
+          radial-gradient(circle at 12% -5%,  rgba(166,227,161,0.05), transparent 35%),
+          radial-gradient(circle at 88% 105%, rgba(249,226,175,0.04), transparent 40%),
+          var(--bg);
+        background-attachment: fixed;
+        color: var(--tx);
+        font-family: var(--mono);
+        font-size: var(--fs-base);
+        line-height: 1.6;
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Caret colour for editable areas (改动 #10) */
+      [contenteditable], textarea, input { caret-color: var(--accent); }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar { width: 10px; height: 10px; }
+      ::-webkit-scrollbar-thumb { background: var(--br-strong); border-radius: 999px; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--br-glow); }
+      ::-webkit-scrollbar-track { background: transparent; }
+
+      /* ── Top chrome (改动 #9: 删红黄绿圆点) ── */
+      .topbar {
+        position: sticky; top: 0; z-index: 20;
+        background: var(--bg-panel);
+        border-bottom: 1px solid var(--br-strong);
+        padding: 10px 24px;
+        display: flex; align-items: center; gap: 24px;
+        font-size: var(--fs-sm);
+      }
+      .brand {
+        font-weight: 600; color: var(--accent);
+        letter-spacing: 0.02em;
+      }
+      .brand::before {
+        content: "▮"; margin-right: 6px;
+        animation: blink 1.2s steps(1) infinite;
+      }
+      @keyframes blink { 50% { opacity: 0.3; } }
+
+      .breadcrumb {
+        flex: 1; text-align: left; color: var(--tx-2);
+        font-size: var(--fs-sm);
+      }
+      .breadcrumb b { color: var(--accent); font-weight: 500; }
+      .breadcrumb .dim { color: var(--tx-3); }
+
+      .meter {
+        font-size: var(--fs-xs); color: var(--tx-2);
+        display: flex; gap: 14px; align-items: center;
+      }
+      .meter .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 4px; vertical-align: middle; }
+
+      /* ── Nav (route tabs) ── */
+      .navbar {
+        background: var(--bg);
+        border-bottom: 1px solid var(--br);
+        padding: 0 24px;
+        display: flex;
+      }
+      .navbar a {
+        padding: 12px 20px; color: var(--tx-3);
+        text-decoration: none; font-size: var(--fs-sm);
+        font-weight: 500;
+        position: relative;
+        transition: color 0.15s;
+      }
+      .navbar a:hover { color: var(--tx); }
+      .navbar a.active { color: var(--accent); }
+      .navbar a.active::before {
+        content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
+        height: 2px; background: var(--accent);
+        box-shadow: 0 0 8px var(--accent-glow);
+      }
+
+      /* ── Layout (改动 #3: 三区块, #4: 紧凑侧栏) ── */
+      .layout {
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr) 360px;
+        gap: var(--gap-md);
+        padding: var(--gap-md) var(--gap-lg);
+        max-width: 1480px;
+        margin: 0 auto;
+      }
+      @media (max-width: 1200px) {
+        .layout { grid-template-columns: 240px 1fr; }
+        .col-tutor { grid-column: 1 / -1; }
+      }
+      @media (max-width: 800px) {
+        .layout { grid-template-columns: 1fr; padding: var(--gap-sm); }
+      }
+
+      /* ── Panel (改动 #5/#7) ── */
+      .panel {
+        background: var(--bg-panel);
+        border: 1px solid var(--br);
+        border-radius: var(--r);
+        position: relative;
+        margin-bottom: var(--gap-md);
+      }
+      /* Subtle highlight strip on top */
+      .panel::before {
+        content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px;
+        background: linear-gradient(90deg, transparent, var(--br-glow), transparent);
+      }
+      .panel-body { padding: var(--gap-md); }
+
+      /* Inline label (改动 #7: 替代 panel header) */
+      .ilabel {
+        display: flex; align-items: baseline; gap: 8px;
+        font-size: var(--fs-xs); color: var(--tx-3);
+        margin-bottom: var(--gap-sm);
+        text-transform: lowercase; letter-spacing: 0.04em;
+      }
+      .ilabel::before { content: "▸"; color: var(--accent-dim); }
+      .ilabel .meta { margin-left: auto; color: var(--tx-mute); font-size: var(--fs-xs); }
+
+      /* ── Sidebar — collapsible schema (改动 #4) ── */
+      .schema-card {
+        margin-bottom: var(--gap-sm);
+        border: 1px solid var(--br); border-radius: var(--r);
+        overflow: hidden;
+      }
+      .schema-card summary {
+        padding: 8px 12px; cursor: pointer;
+        background: var(--bg-panel-2);
+        display: flex; align-items: center; gap: 8px;
+        font-size: var(--fs-sm); color: var(--tx);
+        list-style: none;
+        user-select: none;
+      }
+      .schema-card summary::-webkit-details-marker { display: none; }
+      .schema-card summary::before {
+        content: "▶"; color: var(--tx-3); font-size: 9px;
+        transition: transform 0.15s;
+      }
+      .schema-card[open] summary::before { transform: rotate(90deg); }
+      .schema-card summary .name { font-weight: 500; color: var(--accent); }
+      .schema-card summary .count { margin-left: auto; color: var(--tx-3); font-size: var(--fs-xs); }
+      .schema-card .cols {
+        padding: 8px 12px 10px; font-size: var(--fs-xs);
+        background: var(--bg-input);
+      }
+      .schema-card .col { display: flex; gap: 8px; padding: 2px 0; color: var(--tx-2); }
+      .schema-card .col .ty { color: var(--info); }
+      .schema-card .col .pk { color: var(--accent); font-weight: 700; }
+      .schema-card .col .fk { color: var(--magenta); }
+
+      /* Difficulty buttons (改动 #11: 减弱发光) */
+      .diff-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+      .diff-btn {
+        background: var(--bg-input); border: 1px solid var(--br-strong);
+        color: var(--tx-2); padding: 8px 4px;
+        font-family: var(--mono); font-size: var(--fs-sm); font-weight: 500;
+        cursor: pointer; border-radius: var(--r);
+        transition: all 0.15s;
+        position: relative;
+      }
+      .diff-btn:hover { color: var(--tx); border-color: var(--br-glow); }
+      .diff-btn.active {
+        color: var(--accent);
+        border-color: var(--accent-dim);
+        background: var(--accent-bg);
+      }
+      /* Top highlight stripe instead of glow */
+      .diff-btn.active::before {
+        content: ''; position: absolute; left: 8px; right: 8px; top: -1px;
+        height: 2px; background: var(--accent); border-radius: 1px;
+      }
+
+      /* Topic chips */
+      .topics { display: flex; flex-wrap: wrap; gap: 4px; }
+      .topic {
+        font-size: var(--fs-xs); padding: 4px 10px;
+        border: 1px solid var(--br-strong); border-radius: var(--r);
+        color: var(--tx-2); cursor: pointer; user-select: none;
+        transition: all 0.15s;
+      }
+      .topic:hover { color: var(--tx); border-color: var(--br-glow); }
+      .topic.checked {
+        color: var(--warn); border-color: var(--warn-dim);
+        background: var(--warn-bg);
+      }
+      .topic.checked::before { content: "× "; opacity: 0.7; }
+      .topic:not(.checked)::before { content: "+ "; color: var(--tx-mute); }
+
+      /* ── Question hero (改动 #3: 合并 + 改动 #6: 字号阶梯) ── */
+      .hero { padding: var(--gap-lg); }
+      .hero .meta-row {
+        display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+        margin-bottom: var(--gap-sm); font-size: var(--fs-xs);
+      }
+      .badge {
+        padding: 2px 9px; border: 1px solid var(--br-strong); border-radius: var(--r);
+        font-weight: 500; font-size: var(--fs-xs);
+        white-space: nowrap;
+      }
+      .badge-lvl { color: var(--warn); border-color: var(--warn-dim); background: var(--warn-bg); }
+      .badge-tp  { color: var(--magenta); border-color: rgba(203,166,247,0.25); }
+      .badge-rows { color: var(--info); border-color: rgba(137,180,250,0.25); margin-left: auto; }
+      .qid { color: var(--tx-mute); }
+
+      .hero h2 {
+        font-size: var(--fs-xl);
+        font-weight: 600;
+        line-height: 1.35;
+        margin: 0 0 var(--gap-sm);
+        color: var(--accent);
+        letter-spacing: -0.01em;
+      }
+      .hero h2::before { content: "❯ "; color: var(--accent-dim); }
+
+      .hero .body {
+        font-size: var(--fs-lg);
+        line-height: 1.65;
+        color: var(--tx);
+      }
+      .hero .body em {
+        color: var(--warn); font-style: normal;
+        background: var(--warn-bg); padding: 1px 4px; border-radius: 2px;
+      }
+      .hero .body code {
+        color: var(--accent);
+        background: var(--accent-bg); padding: 1px 6px; border-radius: 2px;
+        font-size: 0.92em;
+      }
+
+      /* ── Editor (改动 #10: 真正的 caret，去掉假伪元素光标) ── */
+      .editor-wrap { padding: 0; }
+      .editor-bar {
+        padding: 8px 16px; font-size: var(--fs-xs);
+        color: var(--tx-3);
+        background: var(--bg-panel-2);
+        border-bottom: 1px solid var(--br);
+        display: flex; align-items: center; gap: 12px;
+      }
+      .editor-bar .path { color: var(--tx-2); }
+      .editor-bar .path::before { content: "$ "; color: var(--accent); }
+      .editor-bar .hint { margin-left: auto; color: var(--tx-mute); font-size: var(--fs-xs); }
+      .editor-bar .hint kbd {
+        padding: 1px 6px; background: var(--bg); border: 1px solid var(--br-strong);
+        border-radius: 3px; font-family: var(--mono); font-size: 10px;
+      }
+
+      .editor {
+        background: var(--bg-input);
+        padding: 16px 20px;
+        color: var(--tx);
+        font-family: var(--mono); font-size: var(--fs-md);
+        min-height: 160px;
+        white-space: pre-wrap;
+        line-height: 1.7;
+        outline: none;
+        tab-size: 2;
+      }
+      .editor:focus { background: #0a0a0a; }
+      .editor .kw { color: var(--magenta); font-weight: 500; }
+      .editor .str { color: var(--warn); }
+      .editor .id  { color: var(--accent); }
+
+      .actions {
+        padding: var(--gap-sm) var(--gap-md);
+        border-top: 1px solid var(--br);
+        display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+        background: var(--bg-panel);
+      }
+      .btn {
+        background: transparent; border: 1px solid var(--br-strong);
+        color: var(--tx); padding: 6px 14px;
+        font-family: var(--mono); font-size: var(--fs-xs); font-weight: 500;
+        cursor: pointer; border-radius: var(--r);
+        transition: all 0.15s;
+      }
+      .btn:hover { border-color: var(--br-glow); }
+      .btn.primary {
+        border-color: var(--accent-dim); color: var(--accent); background: var(--accent-bg);
+      }
+      .btn.primary:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+      .btn.danger:hover { border-color: var(--fail); color: var(--fail); }
+
+      /* Keyboard shortcut row (改动 #15) */
+      .shortcuts {
+        font-size: var(--fs-xs); color: var(--tx-mute);
+        margin-left: auto; display: flex; gap: 12px;
+      }
+      .shortcuts kbd {
+        padding: 1px 6px; background: var(--bg-input); border: 1px solid var(--br);
+        border-radius: 3px; font-family: var(--mono); font-size: 10px;
+        color: var(--tx-2); margin-right: 4px;
+      }
+
+      /* ── Verdict (改动 #12: 视觉重量) ── */
+      .verdict {
+        margin-top: var(--gap-md);
+        display: flex; align-items: stretch; min-height: 56px;
+        border: 1px solid;
+        border-radius: var(--r); overflow: hidden;
+        font-size: var(--fs-base);
+      }
+      .verdict-stripe { width: 4px; flex-shrink: 0; }
+      .verdict-tag {
+        padding: 0 14px; display: grid; place-items: center;
+        font-weight: 700; font-size: var(--fs-base);
+        letter-spacing: 0.05em;
+      }
+      .verdict-body {
+        flex: 1; padding: 14px 16px;
+        display: flex; align-items: center; gap: 12px;
+      }
+      .verdict-body .arr { color: var(--tx-3); font-size: 11px; }
+      .verdict-body .stats { font-size: var(--fs-xs); color: var(--tx-3); margin-left: auto; }
+
+      .verdict.pass {
+        border-color: var(--pass);
+        background: var(--pass-bg);
+      }
+      .verdict.pass .verdict-stripe { background: var(--pass); }
+      .verdict.pass .verdict-tag { color: var(--pass); }
+      .verdict.pass .verdict-body { color: var(--accent); }
+
+      .verdict.fail {
+        border-color: var(--fail);
+        background: var(--fail-bg);
+      }
+      .verdict.fail .verdict-stripe { background: var(--fail); }
+      .verdict.fail .verdict-tag { color: var(--fail); }
+      .verdict.fail .verdict-body { color: var(--fail); }
+
+      /* ── Result table ── */
+      .result-table {
+        width: 100%; border-collapse: collapse;
+        font-family: var(--mono); font-size: var(--fs-sm);
+      }
+      .result-table th {
+        text-align: left; padding: 8px 14px;
+        background: var(--bg-input); color: var(--info);
+        font-weight: 500; font-size: var(--fs-xs);
+        text-transform: lowercase; letter-spacing: 0.04em;
+        border-bottom: 1px solid var(--br-strong);
+      }
+      .result-table td {
+        padding: 8px 14px; color: var(--tx);
+        border-bottom: 1px solid var(--br);
+      }
+      .result-table tr:last-child td { border-bottom: 0; }
+      .result-table tr:hover td { background: var(--bg-input); }
+      .result-summary {
+        padding: 8px 14px; font-size: var(--fs-xs); color: var(--tx-3);
+        border-top: 1px dashed var(--br);
+      }
+      .result-summary code { color: var(--accent); }
+
+      /* ── Tutor (改动 #13: ASCII 头像; #14: loading dots) ── */
+      .col-tutor .panel { position: sticky; top: 80px; }
+      .tutor-thread { padding: var(--gap-sm) 0; display: flex; flex-direction: column; gap: 14px; }
+      .tutor-msg {
+        display: grid; grid-template-columns: 28px 1fr; gap: 10px;
+        align-items: flex-start; font-size: var(--fs-base);
+      }
+      .tutor-msg .av {
+        width: 28px; height: 28px;
+        display: grid; place-items: center;
+        font-size: 11px; font-weight: 700;
+        border: 1px solid currentColor; border-radius: var(--r);
+      }
+      .tutor-msg[data-role="assistant"] .av { color: var(--accent); }
+      .tutor-msg[data-role="user"] .av { color: var(--warn); }
+      .tutor-msg[data-role="assistant"] .av::before { content: ">_"; }
+      .tutor-msg[data-role="user"] .av::before { content: "$_"; }
+      .tutor-msg .bubble {
+        padding: 10px 14px;
+        background: var(--bg-input); border: 1px solid var(--br);
+        border-radius: var(--r);
+        line-height: 1.65;
+      }
+      .tutor-msg[data-role="user"] .bubble {
+        border-color: var(--warn-dim); background: var(--warn-bg); color: var(--tx);
+      }
+      .tutor-msg[data-role="assistant"] .bubble code {
+        color: var(--accent); background: var(--accent-bg);
+        padding: 1px 5px; border-radius: 2px; font-size: 0.92em;
+      }
+
+      /* Typing indicator (改动 #14) */
+      .typing { display: flex; gap: 4px; align-items: center; padding: 4px 0; color: var(--tx-3); font-size: var(--fs-xs); }
+      .typing .d {
+        width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+        animation: bob 1.2s ease-in-out infinite;
+      }
+      .typing .d:nth-child(2) { animation-delay: 0.2s; }
+      .typing .d:nth-child(3) { animation-delay: 0.4s; }
+      @keyframes bob {
+        0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+        30% { transform: translateY(-3px); opacity: 1; }
+      }
+
+      .tutor-input {
+        margin-top: var(--gap-sm);
+        display: grid; grid-template-columns: 1fr auto; gap: 8px;
+      }
+      .tutor-input input {
+        background: var(--bg-input); border: 1px solid var(--br-strong);
+        color: var(--tx); padding: 8px 12px; border-radius: var(--r);
+        font-family: var(--mono); font-size: var(--fs-base);
+        outline: none;
+      }
+      .tutor-input input:focus { border-color: var(--accent-dim); }
+
+      /* Show-answer detail */
+      .ans {
+        margin-top: var(--gap-md);
+        font-size: var(--fs-sm);
+      }
+      .ans summary {
+        cursor: pointer; padding: 6px 0;
+        color: var(--tx-3); list-style: none;
+        border-top: 1px dashed var(--br);
+        padding-top: var(--gap-sm);
+      }
+      .ans summary::before { content: "▶ "; }
+      .ans[open] summary::before { content: "▼ "; }
+      .ans summary:hover { color: var(--accent); }
+      .ans pre {
+        margin: 8px 0 0; padding: 12px;
+        background: var(--bg-input); border: 1px solid var(--br);
+        border-radius: var(--r); overflow-x: auto;
+        font-size: var(--fs-sm); color: var(--accent);
+      }
+      .ans pre .kw { color: var(--magenta); }
+
+      /* ── Floating prototype switcher (compact) ── */
+      .ps {
+        position: fixed; bottom: 14px; left: 50%;
+        transform: translateX(-50%);
+        background: var(--bg-panel); color: var(--tx);
+        padding: 6px 8px; border: 1px solid var(--br-strong);
+        border-radius: 999px;
+        display: flex; align-items: center; gap: 6px;
+        font-family: var(--mono); font-size: var(--fs-xs);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        z-index: 100;
+      }
+      .ps a {
+        color: var(--tx-3); text-decoration: none;
+        padding: 4px 8px; border-radius: 999px;
+      }
+      .ps a:hover { color: var(--accent); background: var(--accent-bg); }
+      .ps strong {
+        color: var(--accent); padding: 4px 10px;
+        background: var(--accent-bg);
+        border: 1px solid var(--accent-dim);
+        border-radius: 999px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">SQL_COACH</div>
+      <div class="breadcrumb">
+        <span class="dim">~/</span>session<span class="dim">/</span><b>q07</b>
+        <span class="dim">·</span> deepseek-v4-flash
+      </div>
+      <div class="meter">
+        <span><span class="dot"></span>connected</span>
+        <span class="dim" style="color:var(--tx-3)">streak 7d</span>
+      </div>
+    </header>
+
+    <nav class="navbar">
+      <a href="#" class="active">practice</a>
+      <a href="#">history</a>
+      <a href="#">report</a>
+      <a href="#">settings</a>
+    </nav>
+
+    <div class="layout">
+      <!-- ── Sidebar ── -->
+      <aside class="col-side">
+        <section class="panel">
+          <div class="panel-body">
+            <div class="ilabel">difficulty</div>
+            <div class="diff-row">
+              <button class="diff-btn">L1</button>
+              <button class="diff-btn">L2</button>
+              <button class="diff-btn active">L3</button>
+              <button class="diff-btn">L4</button>
+            </div>
+            <div style="margin-top:10px; font-size:var(--fs-xs); color:var(--tx-3); line-height:1.5;">
+              难点 · 含相关子查询、EXISTS、量词、差集
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-body">
+            <div class="ilabel">topics <span class="meta">2 / 9</span></div>
+            <div class="topics">
+              <span class="topic">单表</span>
+              <span class="topic">WHERE</span>
+              <span class="topic">JOIN</span>
+              <span class="topic">聚合</span>
+              <span class="topic checked">相关子查询</span>
+              <span class="topic checked">EXISTS</span>
+              <span class="topic">全称量词</span>
+              <span class="topic">EXCEPT</span>
+              <span class="topic">UNION</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-body">
+            <div class="ilabel">schema · ecommerce <span class="meta">3 tables</span></div>
+
+            <details class="schema-card" open>
+              <summary>
+                <span class="name">users</span>
+                <span class="count">3 rows</span>
+              </summary>
+              <div class="cols">
+                <div class="col"><span class="pk">★</span><span>id</span><span class="ty">INT</span></div>
+                <div class="col"><span>　</span><span>name</span><span class="ty">VARCHAR(50)</span></div>
+                <div class="col"><span>　</span><span>email</span><span class="ty">VARCHAR(100)</span></div>
+              </div>
+            </details>
+
+            <details class="schema-card">
+              <summary>
+                <span class="name">orders</span>
+                <span class="count">5 rows</span>
+              </summary>
+              <div class="cols">
+                <div class="col"><span class="pk">★</span><span>id</span><span class="ty">INT</span></div>
+                <div class="col"><span class="fk">↗</span><span>user_id</span><span class="ty">INT</span></div>
+                <div class="col"><span>　</span><span>total</span><span class="ty">DECIMAL</span></div>
+              </div>
+            </details>
+
+            <details class="schema-card">
+              <summary>
+                <span class="name">products</span>
+                <span class="count">8 rows</span>
+              </summary>
+              <div class="cols">
+                <div class="col"><span class="pk">★</span><span>id</span><span class="ty">INT</span></div>
+                <div class="col"><span>　</span><span>name</span><span class="ty">VARCHAR(100)</span></div>
+                <div class="col"><span>　</span><span>price</span><span class="ty">DECIMAL</span></div>
+              </div>
+            </details>
+          </div>
+        </section>
+      </aside>
+
+      <!-- ── Main column ── -->
+      <main class="col-main">
+        <!-- Question hero -->
+        <section class="panel">
+          <div class="hero">
+            <div class="meta-row">
+              <span class="badge badge-lvl">L3 · 难点</span>
+              <span class="badge badge-tp">EXISTS</span>
+              <span class="badge badge-tp">相关子查询</span>
+              <span class="qid">q07 · 2m ago</span>
+              <span class="badge badge-rows">expected 3 rows</span>
+            </div>
+            <h2>查询所有曾下过订单的用户姓名</h2>
+            <div class="body">
+              数据库中有 <code>users</code> 与 <code>orders</code> 两张表。请使用<em>相关子查询</em>配合 <em>EXISTS</em> 子句，找出所有曾经在 orders 表中出现过的 user。<br>
+              要求：<em>不要使用 IN 与 JOIN 写法</em>。
+            </div>
+          </div>
+        </section>
+
+        <!-- Editor -->
+        <section class="panel editor-wrap">
+          <div class="editor-bar">
+            <span class="path">vim solution.sql</span>
+            <span class="hint">
+              <kbd>⌘↵</kbd> submit · <kbd>⌃L</kbd> format · <kbd>esc</kbd> reset
+            </span>
+          </div>
+          <div class="editor" contenteditable="true" spellcheck="false"><span class="kw">SELECT</span> u.name <span class="kw">FROM</span> users u
+<span class="kw">WHERE EXISTS</span> (
+  <span class="kw">SELECT</span> 1 <span class="kw">FROM</span> orders o
+  <span class="kw">WHERE</span> o.user_id = u.id
+);</div>
+          <div class="actions">
+            <button class="btn primary">▶ submit</button>
+            <button class="btn">format</button>
+            <button class="btn danger">reset db</button>
+            <span class="shortcuts">
+              <span><kbd>⌘↵</kbd>提交</span>
+            </span>
+          </div>
+        </section>
+
+        <!-- Verdict -->
+        <div class="verdict pass">
+          <div class="verdict-stripe"></div>
+          <div class="verdict-tag">PASS</div>
+          <div class="verdict-body">
+            <span>多重集匹配</span>
+            <span class="arr">→</span>
+            <span>3 rows match reference</span>
+            <span class="stats">judged in 3ms · pure-fn</span>
+          </div>
+        </div>
+
+        <!-- Result -->
+        <section class="panel" style="margin-top: var(--gap-md);">
+          <div class="panel-body" style="padding: 0;">
+            <table class="result-table">
+              <thead><tr><th>name</th></tr></thead>
+              <tbody>
+                <tr><td>Alice</td></tr>
+                <tr><td>Bob</td></tr>
+                <tr><td>Charlie</td></tr>
+              </tbody>
+            </table>
+            <div class="result-summary">
+              rows: <code>3</code> · cols: <code>1</code> · truncated: <code>false</code> · 0.2ms
+            </div>
+          </div>
+        </section>
+
+        <!-- Show answer (collapsed by default) -->
+        <details class="ans">
+          <summary>显示参考答案</summary>
+          <pre><span class="kw">SELECT</span> u.name <span class="kw">FROM</span> users u
+<span class="kw">WHERE EXISTS</span> (
+  <span class="kw">SELECT</span> 1 <span class="kw">FROM</span> orders o
+  <span class="kw">WHERE</span> o.user_id = u.id
+);</pre>
+        </details>
+      </main>
+
+      <!-- ── Tutor column (sticky) ── -->
+      <aside class="col-tutor">
+        <section class="panel">
+          <div class="panel-body">
+            <div class="ilabel">tutor.thread <span class="meta">3 turns</span></div>
+            <div class="tutor-thread">
+              <div class="tutor-msg" data-role="assistant">
+                <div class="av"></div>
+                <div class="bubble">
+                  漂亮——这就是 EXISTS 的标准模式。注意到 <code>SELECT 1</code> 而不是 <code>SELECT *</code> 了吗？这是个老派习惯，因为 EXISTS 只在乎"有没有"，不在乎"是什么"。
+                </div>
+              </div>
+              <div class="tutor-msg" data-role="user">
+                <div class="av"></div>
+                <div class="bubble">为什么这种场景不能用 IN？</div>
+              </div>
+              <div class="tutor-msg" data-role="assistant">
+                <div class="av"></div>
+                <div class="bubble">
+                  可以——但 <code>EXISTS</code> 在 orders 表特别大、且 <code>user_id</code> 上有索引时通常更快，因为它一旦找到一行就短路返回。<code>IN</code> 则需要先扫完整个子查询。
+                </div>
+              </div>
+              <!-- Typing indicator -->
+              <div class="tutor-msg" data-role="assistant" style="opacity: 0.7;">
+                <div class="av"></div>
+                <div class="bubble" style="padding: 12px 14px;">
+                  <div class="typing">
+                    <span class="d"></span><span class="d"></span><span class="d"></span>
+                    <span style="margin-left: 6px;">tutor 正在思考</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tutor-input">
+              <input type="text" placeholder="$ 继续追问..." />
+              <button class="btn primary">send ↵</button>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <div class="ps">
+      <a href="./variant-b.html">v1</a>
+      <strong>B v2 · refined</strong>
+      <a href="./index.html">all</a>
+    </div>
+  </body>
+</html>
