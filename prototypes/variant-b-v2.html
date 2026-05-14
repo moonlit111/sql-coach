@@ -147,21 +147,27 @@
         box-shadow: 0 0 8px var(--accent-glow);
       }
 
-      /* ── Layout (改动 #3: 三区块, #4: 紧凑侧栏) ── */
+      /* ── Layout (改动 #3: 三栏常驻 v3 调整) ── */
       .layout {
         display: grid;
-        grid-template-columns: 260px minmax(0, 1fr) 360px;
+        grid-template-columns: 240px minmax(0, 1fr) 360px;
         gap: var(--gap-md);
         padding: var(--gap-md) var(--gap-lg);
-        max-width: 1480px;
+        max-width: 1640px;
         margin: 0 auto;
       }
-      @media (max-width: 1200px) {
-        .layout { grid-template-columns: 240px 1fr; }
-        .col-tutor { grid-column: 1 / -1; }
+      /* 中等屏幕：缩窄两侧但保持三栏 */
+      @media (max-width: 1280px) {
+        .layout {
+          grid-template-columns: 220px minmax(0, 1fr) 320px;
+          gap: var(--gap-sm);
+          padding: var(--gap-md) var(--gap-md);
+        }
       }
-      @media (max-width: 800px) {
+      /* 小屏（< 1024px）才折叠成单列 */
+      @media (max-width: 1024px) {
         .layout { grid-template-columns: 1fr; padding: var(--gap-sm); }
+        .col-tutor .panel { position: static !important; }
       }
 
       /* ── Panel (改动 #5/#7) ── */
@@ -424,9 +430,24 @@
       }
       .result-summary code { color: var(--accent); }
 
-      /* ── Tutor (改动 #13: ASCII 头像; #14: loading dots) ── */
-      .col-tutor .panel { position: sticky; top: 80px; }
-      .tutor-thread { padding: var(--gap-sm) 0; display: flex; flex-direction: column; gap: 14px; }
+      /* ── Tutor (改动 #13: ASCII 头像; #14: loading dots; v3: 真三栏 sticky 完整高度) ── */
+      .col-tutor .panel {
+        position: sticky; top: 88px;
+        max-height: calc(100vh - 100px);
+        display: flex; flex-direction: column;
+      }
+      .col-tutor .panel-body {
+        display: flex; flex-direction: column;
+        flex: 1; min-height: 0;
+        padding: var(--gap-sm) var(--gap-md) var(--gap-md);
+      }
+      .tutor-thread {
+        padding: var(--gap-sm) 0;
+        display: flex; flex-direction: column; gap: 14px;
+        flex: 1; min-height: 0;
+        overflow-y: auto;
+        margin-right: -8px; padding-right: 8px;
+      }
       .tutor-msg {
         display: grid; grid-template-columns: 28px 1fr; gap: 10px;
         align-items: flex-start; font-size: var(--fs-base);
