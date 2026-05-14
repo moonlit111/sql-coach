@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SQL 教练</title>
+    <link rel="stylesheet" href="./styles/main.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "@langchain/langgraph": "https://esm.sh/@langchain/langgraph@0.2.34",
+          "@langchain/core/messages": "https://esm.sh/@langchain/core@0.3.18/messages",
+          "sql.js": "https://cdn.jsdelivr.net/npm/sql.js@1.11.0/dist/sql-wasm.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
