@@ -53,7 +53,14 @@ export class Sandbox {
   /** Initialise sql.js (in-process backend). Idempotent. */
   async init() {
     if (this.SQL) return;
-    const initOpts = this.locateFile ? { locateFile: this.locateFile } : {};
+    // In the browser, the wasm file must be loaded from a known URL.
+    // We default to jsdelivr unless the caller provides a custom locator
+    // (e.g. tests resolving from node_modules).
+    const defaultLocate = (file) =>
+      `https://cdn.jsdelivr.net/npm/sql.js@1.11.0/dist/${file}`;
+    const initOpts = this.locateFile
+      ? { locateFile: this.locateFile }
+      : (typeof window !== 'undefined' ? { locateFile: defaultLocate } : {});
     this.SQL = await initSqlJs(initOpts);
   }
 

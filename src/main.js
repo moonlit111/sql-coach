@@ -311,9 +311,17 @@ if (typeof document !== 'undefined') {
   const root = document.getElementById('app');
   if (root) {
     boot(root).catch((e) => {
-      // Last-resort surface — render a plain error message.
-      // eslint-disable-next-line no-console
       console.error('[sql-coach] boot failed:', e);
+      // Surface the failure so users don't see a blank page.
+      root.innerHTML = '';
+      const banner = document.createElement('div');
+      banner.style.cssText = 'padding:16px;background:#fee;color:#900;border:1px solid #f99;margin:16px;border-radius:8px;font-family:system-ui,sans-serif;';
+      banner.innerHTML = `<h2 style="margin-top:0">SQL 教练加载失败</h2>
+        <p>请打开浏览器控制台（F12）查看详细错误。</p>
+        <pre style="white-space:pre-wrap;background:#fff;padding:8px;border-radius:4px;overflow:auto">${
+          String(e?.stack || e?.message || e).replace(/[<>&]/g, (c) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))
+        }</pre>`;
+      root.appendChild(banner);
     });
   }
 }

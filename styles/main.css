@@ -1,16 +1,272 @@
-/* SQL 教练 styles — populated by ui tasks */
+/* SQL 教练 — application overrides on top of Pico.css.
+   Pico.css handles base typography, forms, buttons, tables, dialogs,
+   and a built-in dark mode. This file only adds:
+   - app-level layout (sticky header, route container)
+   - product-specific components (history items, quota dialog,
+     toast surface) that Pico does not cover.
+*/
 
-body {
+/* ---------- Brand tokens ---------- */
+
+:root {
+  --sql-brand: #2563eb;          /* primary blue */
+  --sql-brand-hover: #1d4ed8;
+  --sql-radius: 8px;
+  --sql-card-bg: var(--pico-card-background-color, #fff);
+  --sql-correct: #10b981;
+  --sql-wrong: #ef4444;
+  --pico-primary: var(--sql-brand);
+  --pico-primary-hover: var(--sql-brand-hover);
+  --pico-primary-focus: rgba(37, 99, 235, 0.25);
+}
+
+/* Pico defaults to a "fluid container" with generous padding.
+   Tighten it for a tool-like feel without losing readability. */
+body > header,
+body > main,
+body > footer {
+  max-width: 1100px;
+  margin-inline: auto;
+}
+
+/* ---------- App shell ---------- */
+
+#app { min-height: 100vh; }
+
+#app > header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 24px;
+  background: var(--pico-background-color, #fff);
+  border-bottom: 1px solid var(--pico-muted-border-color, #e5e7ee);
   margin: 0;
-  font-family:
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    Arial,
-    "PingFang SC",
-    "Hiragino Sans GB",
-    "Microsoft YaHei",
-    sans-serif;
+}
+#app > header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.app-nav {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+.app-nav .btn {
+  /* Override Pico's button defaults for a tab-like nav. */
+  padding: 6px 14px;
+  font-size: 14px;
+  background: transparent;
+  color: var(--pico-color);
+  border: 1px solid transparent;
+  border-radius: var(--sql-radius);
+  cursor: pointer;
+}
+.app-nav .btn:hover {
+  background: var(--pico-secondary-background, #f0f2f6);
+}
+.app-nav .btn.btn-active {
+  background: var(--sql-brand);
+  color: #fff;
+  border-color: var(--sql-brand);
+}
+
+/* Pico styles its primary <button> as a brand-color button — keep that.
+   But our nav uses .btn-nav which we styled above. The form submit
+   buttons benefit from Pico's defaults. */
+
+main.app-route {
+  padding: 24px;
+}
+
+/* ---------- History view ---------- */
+
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.history-item {
+  padding: 12px 16px;
+  background: var(--sql-card-bg);
+  border: 1px solid var(--pico-muted-border-color, #e5e7ee);
+  border-radius: var(--sql-radius);
+  margin-bottom: 8px;
+}
+.history-item[data-history-correct="true"] {
+  border-left: 4px solid var(--sql-correct);
+}
+.history-item[data-history-correct="false"] {
+  border-left: 4px solid var(--sql-wrong);
+}
+.history-meta {
+  font-size: 12px;
+  color: var(--pico-muted-color, #6b7280);
+  margin-bottom: 6px;
+}
+.history-sql {
+  margin: 0;
+  background: var(--pico-code-background-color, #f6f7fb);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.history-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--pico-muted-color, #6b7280);
+  background: var(--sql-card-bg);
+  border-radius: var(--sql-radius);
+  border: 1px dashed var(--pico-muted-border-color, #e5e7ee);
+}
+.history-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.history-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+/* ---------- Quota dialog (R15.6 / Property 12) ---------- */
+
+.app-dialog {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+}
+.quota-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--sql-card-bg);
+  padding: 24px;
+  border-radius: var(--sql-radius);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  pointer-events: auto;
+  max-width: 480px;
+}
+.quota-dialog h3 { margin-top: 0; }
+
+/* ---------- Error toast surface (R14.6) ---------- */
+
+.app-toast {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+  max-width: 360px;
+}
+.app-toast .toast-error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-radius: var(--sql-radius);
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  font-size: 14px;
+}
+
+/* ---------- localStorage fallback banner (R2.5) ---------- */
+
+.storage-fallback-banner {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* ---------- Practice / editor layout ---------- */
+
+.schema-display {
+  background: var(--sql-card-bg);
+  border: 1px solid var(--pico-muted-border-color, #e5e7ee);
+  border-radius: var(--sql-radius);
+  padding: 16px;
+  margin: 16px 0;
+}
+.schema-display table { font-size: 13px; }
+
+.editor-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+textarea.sql-editor,
+textarea[data-sql-editor] {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  min-height: 140px;
+}
+
+.dual-editor {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 720px) {
+  .dual-editor { grid-template-columns: 1fr; }
+}
+
+/* ---------- Verdict bar ---------- */
+
+.verdict-bar {
+  padding: 12px 16px;
+  border-radius: var(--sql-radius);
+  margin: 12px 0;
+  font-weight: 500;
+}
+.verdict-bar[data-correct="true"] {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.verdict-bar[data-correct="false"] {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* ---------- Tutor chat ---------- */
+
+.tutor-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  max-height: 480px;
+  overflow-y: auto;
+}
+.tutor-message {
+  padding: 10px 14px;
+  border-radius: 12px;
+  max-width: 80%;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.tutor-message[data-role="user"] {
+  background: var(--sql-brand);
+  color: #fff;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+.tutor-message[data-role="assistant"] {
+  background: var(--pico-secondary-background, #f0f2f6);
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
 }
