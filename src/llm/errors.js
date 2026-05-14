@@ -102,9 +102,13 @@ export function classifyError(input) {
     }
     if (name === 'TypeError') {
       // R3.1: the message must contain the literal "CORS" so the UI surfaces it.
+      // But honest about the ambiguity — TypeError("Failed to fetch") could be
+      // CORS, DNS failure, unreachable host, or wrong URL. Browsers deliberately
+      // hide which one it is.
       return {
         kind: 'cors',
-        message: '跨域被拒（CORS）：请检查 LLM 端点的跨域设置',
+        message:
+          '请求未能完成。可能原因：(1) CORS 跨域被拒；(2) API 地址打错或端点不可达；(3) 网络/DNS 问题。请先检查 API Base URL 是否正确，再确认端点是否允许跨域。',
       };
     }
     return { kind: 'network', message: msg };

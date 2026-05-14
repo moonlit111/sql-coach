@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SQL 教练 — UI 原型对比</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: #0a0a0a;
+        color: #e8e8e8;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 48px 24px;
+      }
+      .wrap { max-width: 960px; width: 100%; }
+      h1 {
+        font-size: 48px; margin: 0 0 8px;
+        font-weight: 800; letter-spacing: -0.03em;
+      }
+      .lead { color: #888; margin-bottom: 48px; font-size: 16px; line-height: 1.6; }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+      .card {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        background: #141414;
+        border: 1px solid #262626;
+        border-radius: 12px;
+        padding: 24px;
+        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+      .card:hover { transform: translateY(-2px); border-color: #444; }
+      .badge {
+        display: inline-block; font-size: 11px; letter-spacing: 0.1em;
+        padding: 2px 8px; border-radius: 999px; margin-bottom: 12px;
+        text-transform: uppercase;
+      }
+      .card h3 { margin: 0 0 8px; font-size: 22px; }
+      .card .desc { font-size: 13px; color: #888; line-height: 1.5; margin: 0 0 16px; }
+      .preview {
+        height: 120px; border-radius: 8px;
+        margin-bottom: 16px; padding: 12px;
+        font-size: 11px;
+        display: flex; align-items: flex-end;
+        overflow: hidden;
+      }
+      .a { background: #faf8f3; color: #1a1a1a; font-family: "Source Serif Pro", "Iowan Old Style", Georgia, serif; }
+      .a-badge { background: #fef0c7; color: #6b4500; }
+      .a .preview { background: #fff; border: 1px solid #d4cfc4; flex-direction: column; align-items: flex-start; }
+      .a .preview b { font-style: italic; font-size: 14px; }
+
+      .b { background: #050505; color: #50fa7b; font-family: "JetBrains Mono", ui-monospace, monospace; border-color: #1a3300; }
+      .b-badge { background: #142c00; color: #50fa7b; border: 1px solid #2a5500; }
+      .b .preview { background: #0a0a0a; border: 1px dashed #2a5500; color: #50fa7b; font-size: 10px; line-height: 1.4; flex-direction: column; align-items: flex-start; gap: 2px; }
+
+      .c { background: #fff7ed; color: #431407; font-family: "Nunito", "Quicksand", sans-serif; }
+      .c-badge { background: #fed7aa; color: #7c2d12; }
+      .c .preview { background: linear-gradient(135deg, #fed7aa, #fdba74); border-radius: 12px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+      .c .preview .pill { padding: 4px 12px; background: white; border-radius: 999px; color: #7c2d12; font-weight: 700; font-size: 11px; }
+
+      footer { margin-top: 48px; color: #555; font-size: 13px; line-height: 1.6; }
+      footer code { background: #222; padding: 1px 6px; border-radius: 3px; color: #ccc; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>SQL 教练 · UI 原型对比</h1>
+      <p class="lead">三个结构与美学完全不同的方向。点开任意一张卡看完整原型，对比后告诉我你想要哪一版（或几版的混搭）。</p>
+
+      <div class="grid">
+        <a href="./variant-a.html" class="card a">
+          <span class="badge a-badge">Variant A</span>
+          <h3>Editorial</h3>
+          <p class="desc">学术编辑风。衬线字体、单色调、信息密度高。题目像一篇文章，知识点像内文标注。</p>
+          <div class="preview">
+            <b>Question · L3 EXISTS</b>
+            <span style="color:#666; font-size:11px;">查询存在订单的用户姓名…</span>
+          </div>
+        </a>
+
+        <a href="./variant-b.html" class="card b">
+          <span class="badge b-badge">Variant B</span>
+          <h3>Terminal</h3>
+          <p class="desc">极客终端风。等宽字体、暗色背景、ASCII 边框。Schema 像 psql 输出，编辑器像终端。</p>
+          <div class="preview">
+            <span>$ sql-coach &gt; question --L3</span>
+            <span>┌─ EXISTS ─────────────┐</span>
+            <span>│ 查询存在订单的用户… │</span>
+          </div>
+        </a>
+
+        <a href="./variant-c.html" class="card c">
+          <span class="badge c-badge">Variant C</span>
+          <h3>Soft Edu</h3>
+          <p class="desc">温暖学习风。圆角、米色暖调、彩虹难度条、微动画。鼓励性反馈。</p>
+          <div class="preview">
+            <div class="pill">📚 L3 · EXISTS</div>
+            <div class="pill" style="background:#fff7ed;">+10 经验值</div>
+          </div>
+        </a>
+      </div>
+
+      <footer>
+        每个原型都是<strong>独立静态 HTML</strong>（双击即可打开），写死了一份示例数据：电商主题，3 张表，1 道 EXISTS 题，含答题/判题/Tutor 对话/历史。<br>
+        看完后回复你想要的方向（可以混搭，例如 <code>B 的字体 + C 的圆角 + A 的信息密度</code>）。
+      </footer>
+    </div>
+  </body>
+</html>

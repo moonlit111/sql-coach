@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SQL 教练 · Variant C — Soft Educational</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Quicksand:wght@500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --bg: #fff7ed;            /* warm cream */
+        --bg-card: #ffffff;
+        --bg-soft: #fff1e0;
+        --primary: #ea580c;        /* warm orange */
+        --primary-soft: #fed7aa;
+        --primary-bg: #fff1e0;
+        --green: #65a30d;
+        --green-soft: #d9f99d;
+        --green-bg: #ecfccb;
+        --yellow: #ca8a04;
+        --yellow-soft: #fde68a;
+        --red: #e11d48;
+        --red-soft: #fecdd3;
+        --purple: #9333ea;
+        --purple-soft: #e9d5ff;
+        --blue: #0891b2;
+        --blue-soft: #cffafe;
+        --ink: #431407;
+        --ink-soft: #7c2d12;
+        --ink-muted: #a8754b;
+        --shadow: 0 4px 0 rgba(124, 45, 18, 0.08), 0 2px 12px rgba(124, 45, 18, 0.06);
+        --shadow-hover: 0 6px 0 rgba(124, 45, 18, 0.12), 0 4px 20px rgba(124, 45, 18, 0.08);
+        --radius: 16px;
+        --radius-sm: 10px;
+        --radius-pill: 999px;
+        --sans: "Nunito", "PingFang SC", -apple-system, sans-serif;
+        --display: "Quicksand", "Nunito", sans-serif;
+        --mono: "Fira Code", ui-monospace, monospace;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background:
+          radial-gradient(circle at 0% 0%, #ffe4cc 0%, transparent 40%),
+          radial-gradient(circle at 100% 100%, #ffe9d6 0%, transparent 40%),
+          var(--bg);
+        background-attachment: fixed;
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 15px; font-weight: 500;
+        line-height: 1.6;
+        min-height: 100vh;
+      }
+
+      /* ── Top bar ── */
+      .topbar {
+        background: rgba(255, 247, 237, 0.85);
+        backdrop-filter: blur(12px);
+        position: sticky; top: 0; z-index: 10;
+        padding: 16px 32px;
+        border-bottom: 2px solid var(--primary-soft);
+        display: flex; align-items: center; gap: 24px;
+      }
+      .logo {
+        font-family: var(--display); font-weight: 700;
+        font-size: 22px; color: var(--ink);
+        display: flex; align-items: center; gap: 10px;
+      }
+      .logo .icon {
+        width: 36px; height: 36px;
+        background: linear-gradient(135deg, var(--primary), #fb923c);
+        border-radius: 12px;
+        display: grid; place-items: center;
+        color: white; font-size: 18px;
+        box-shadow: 0 4px 0 #c2410c;
+        transform: rotate(-3deg);
+      }
+
+      .nav { display: flex; gap: 4px; flex: 1; justify-content: center; }
+      .nav a {
+        padding: 8px 18px; border-radius: var(--radius-pill);
+        text-decoration: none; color: var(--ink-soft);
+        font-weight: 600; font-size: 14px;
+        transition: all 0.2s;
+      }
+      .nav a:hover { background: var(--bg-soft); }
+      .nav a.active {
+        background: var(--ink); color: var(--bg);
+      }
+
+      .streak {
+        display: flex; align-items: center; gap: 6px;
+        background: var(--bg-card);
+        padding: 6px 14px;
+        border-radius: var(--radius-pill);
+        box-shadow: var(--shadow);
+        font-weight: 700; font-size: 14px;
+        color: var(--primary);
+      }
+      .streak::before { content: "🔥"; font-size: 18px; }
+
+      /* ── Layout ── */
+      .layout {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 24px;
+        padding: 24px 32px;
+        max-width: 1320px;
+        margin: 0 auto;
+      }
+      @media (max-width: 900px) { .layout { grid-template-columns: 1fr; padding: 16px; } }
+
+      .card {
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        padding: 20px;
+        box-shadow: var(--shadow);
+        margin-bottom: 16px;
+      }
+      .card h3 {
+        margin: 0 0 12px; font-size: 14px;
+        font-family: var(--display); font-weight: 700;
+        color: var(--ink-soft); display: flex; align-items: center; gap: 8px;
+      }
+      .card h3 .emoji { font-size: 18px; }
+
+      /* ── Sidebar ── */
+      .sidebar { display: flex; flex-direction: column; }
+
+      /* Schema cards */
+      .schema-card {
+        background: var(--bg-soft);
+        border-radius: var(--radius-sm);
+        padding: 12px;
+        margin-bottom: 8px;
+        border: 2px dashed var(--primary-soft);
+      }
+      .schema-card .name {
+        font-weight: 800; font-size: 14px; color: var(--ink);
+        margin-bottom: 6px; display: flex; gap: 8px; align-items: center;
+      }
+      .schema-card .name::before {
+        content: ""; width: 8px; height: 8px;
+        border-radius: 50%; background: var(--primary);
+      }
+      .schema-card .col {
+        font-family: var(--mono); font-size: 12px; color: var(--ink-soft);
+        padding: 2px 0;
+      }
+      .schema-card .col .pk { color: var(--primary); font-weight: 700; }
+      .schema-card .col .ty { color: var(--blue); }
+
+      /* Difficulty rainbow */
+      .difficulty-rainbow {
+        display: flex; gap: 4px;
+        background: var(--bg-soft);
+        padding: 4px; border-radius: var(--radius-pill);
+      }
+      .difficulty-rainbow button {
+        flex: 1; border: 0; padding: 10px 6px;
+        border-radius: var(--radius-pill);
+        font-weight: 700; font-size: 13px; font-family: var(--display);
+        cursor: pointer; color: var(--ink-soft); background: transparent;
+        transition: all 0.25s;
+      }
+      .difficulty-rainbow button:hover { background: rgba(255,255,255,0.5); }
+      .difficulty-rainbow button.active {
+        color: white; transform: translateY(-2px);
+        box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+      }
+      .difficulty-rainbow .l1.active { background: #65a30d; box-shadow: 0 3px 0 #4d7c0f; }
+      .difficulty-rainbow .l2.active { background: #ca8a04; box-shadow: 0 3px 0 #a16207; }
+      .difficulty-rainbow .l3.active { background: #ea580c; box-shadow: 0 3px 0 #c2410c; }
+      .difficulty-rainbow .l4.active { background: #e11d48; box-shadow: 0 3px 0 #be123c; }
+
+      /* Topic chips */
+      .topic-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+      .chip {
+        padding: 6px 12px; border-radius: var(--radius-pill);
+        font-size: 12px; font-weight: 700;
+        background: var(--bg-soft); color: var(--ink-soft);
+        border: 2px solid transparent; cursor: pointer;
+        transition: all 0.15s; user-select: none;
+      }
+      .chip:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+      .chip.checked {
+        background: var(--ink); color: var(--bg);
+        border-color: var(--ink);
+      }
+      .chip.checked::before { content: "✓ "; }
+
+      /* ── Main ── */
+      .main { display: flex; flex-direction: column; gap: 16px; }
+
+      /* Question hero */
+      .question-hero {
+        background: linear-gradient(135deg, #fff 0%, #fff7ed 100%);
+        border-radius: var(--radius);
+        padding: 24px 28px;
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+      }
+      .question-hero::before {
+        content: ""; position: absolute; top: -40px; right: -40px;
+        width: 160px; height: 160px;
+        background: radial-gradient(circle, var(--primary-soft), transparent 70%);
+        border-radius: 50%;
+      }
+      .question-hero .badges {
+        display: flex; gap: 8px; margin-bottom: 12px; position: relative; z-index: 1;
+      }
+      .badge {
+        padding: 4px 12px; border-radius: var(--radius-pill);
+        font-size: 12px; font-weight: 700;
+        display: inline-flex; align-items: center; gap: 4px;
+      }
+      .badge-l3 { background: var(--primary-bg); color: var(--primary); }
+      .badge-topic { background: var(--purple-soft); color: var(--purple); }
+      .badge-rows { background: var(--blue-soft); color: var(--blue); }
+
+      .question-hero h2 {
+        font-family: var(--display); font-size: 26px; font-weight: 700;
+        margin: 0 0 12px; line-height: 1.3; color: var(--ink);
+        position: relative; z-index: 1;
+      }
+      .question-hero p {
+        margin: 0; font-size: 15px; line-height: 1.7; color: var(--ink-soft);
+        position: relative; z-index: 1;
+      }
+      .question-hero p em {
+        background: var(--yellow-soft); padding: 1px 6px; border-radius: 4px;
+        font-style: normal; font-weight: 700; color: var(--ink);
+      }
+
+      /* Editor */
+      .editor-card {
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .editor-tab {
+        background: var(--bg-soft);
+        padding: 10px 18px;
+        font-size: 12px; color: var(--ink-soft);
+        font-family: var(--mono);
+        border-bottom: 2px solid var(--primary-soft);
+        display: flex; align-items: center; gap: 8px;
+      }
+      .editor-tab::before { content: "📝"; }
+      .editor {
+        background: var(--bg-card); color: var(--ink);
+        font-family: var(--mono); font-size: 14px; line-height: 1.7;
+        padding: 18px;
+        white-space: pre-wrap;
+        outline: none; min-height: 140px;
+      }
+      .editor:focus { background: #fffbf5; }
+      .editor .kw { color: var(--purple); font-weight: 700; }
+
+      .actions {
+        display: flex; gap: 10px; padding: 12px 18px;
+        border-top: 1px solid var(--bg-soft);
+        flex-wrap: wrap; align-items: center;
+      }
+      .btn {
+        padding: 10px 18px; border-radius: var(--radius-pill);
+        border: 0; font-family: var(--sans); font-weight: 700;
+        font-size: 13px; cursor: pointer;
+        transition: all 0.15s; color: var(--ink);
+        background: var(--bg-soft);
+        box-shadow: 0 2px 0 rgba(124, 45, 18, 0.1);
+      }
+      .btn:hover { transform: translateY(-1px); box-shadow: 0 3px 0 rgba(124, 45, 18, 0.15); }
+      .btn:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(124, 45, 18, 0.1); }
+      .btn-primary {
+        background: var(--primary); color: white;
+        box-shadow: 0 4px 0 #c2410c;
+      }
+      .btn-primary:hover { background: #f97316; box-shadow: 0 5px 0 #c2410c; }
+      .btn-primary::before { content: "▶ "; }
+      .btn-ghost { background: transparent; color: var(--ink-muted); box-shadow: none; }
+      .btn-ghost:hover { background: var(--bg-soft); box-shadow: none; transform: none; }
+
+      /* Verdict */
+      .verdict {
+        border-radius: var(--radius); padding: 20px 24px;
+        display: flex; align-items: center; gap: 16px;
+        font-weight: 700;
+        animation: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      @keyframes pop {
+        0% { transform: scale(0.9); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      .verdict-correct {
+        background: linear-gradient(135deg, var(--green-bg), var(--green-soft));
+        color: #3f6212;
+      }
+      .verdict-correct::before { content: "🎉"; font-size: 36px; }
+      .verdict-correct .xp {
+        margin-left: auto; background: white; padding: 6px 14px;
+        border-radius: var(--radius-pill); color: var(--green);
+        font-size: 13px; box-shadow: var(--shadow);
+      }
+      .verdict-correct .xp::before { content: "+10 XP "; }
+      .verdict-wrong {
+        background: linear-gradient(135deg, var(--red-soft), #fff);
+        color: #9f1239;
+      }
+      .verdict-wrong::before { content: "🤔"; font-size: 36px; }
+
+      /* Result table */
+      .result-card {
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+        box-shadow: var(--shadow);
+      }
+      .result-card h3 .emoji { color: var(--blue); }
+      .result-table {
+        width: 100%; border-collapse: separate; border-spacing: 0;
+        border-radius: var(--radius-sm); overflow: hidden;
+      }
+      .result-table th {
+        background: var(--bg-soft); color: var(--ink-soft);
+        padding: 10px 14px; font-size: 12px;
+        text-align: left; font-weight: 700;
+      }
+      .result-table td {
+        padding: 10px 14px; font-family: var(--mono);
+        border-top: 1px solid var(--bg-soft);
+      }
+      .result-table tr:hover td { background: var(--bg-soft); }
+
+      /* Tutor — bubble chat */
+      .tutor-card {
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        padding: 20px;
+        box-shadow: var(--shadow);
+      }
+      .tutor-card h3 .emoji { color: var(--purple); }
+      .tutor-thread { display: flex; flex-direction: column; gap: 10px; padding: 8px 0; }
+      .bubble {
+        max-width: 85%; padding: 12px 16px;
+        border-radius: 18px;
+        font-size: 14px; line-height: 1.6;
+        position: relative;
+      }
+      .bubble.assistant {
+        background: var(--bg-soft); color: var(--ink);
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+      }
+      .bubble.assistant::before {
+        content: "🦊"; position: absolute; left: -32px; bottom: 0;
+        background: var(--primary); border-radius: 50%;
+        width: 28px; height: 28px; display: grid; place-items: center;
+        font-size: 16px; box-shadow: var(--shadow);
+      }
+      .bubble.user {
+        background: var(--primary); color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+      }
+      .tutor-thread { padding-left: 36px; }
+      .tutor-input {
+        display: flex; gap: 8px; margin-top: 12px;
+      }
+      .tutor-input input {
+        flex: 1; padding: 12px 18px; border-radius: var(--radius-pill);
+        border: 2px solid var(--bg-soft); background: white;
+        font-family: var(--sans); font-size: 14px; color: var(--ink);
+        outline: none;
+      }
+      .tutor-input input:focus { border-color: var(--primary); }
+
+      /* Floating prototype switcher */
+      .ps {
+        position: fixed; bottom: 16px; left: 50%;
+        transform: translateX(-50%);
+        background: var(--ink); color: white;
+        padding: 10px 18px; border-radius: var(--radius-pill);
+        display: flex; align-items: center; gap: 12px;
+        font-family: var(--sans); font-weight: 700; font-size: 13px;
+        box-shadow: 0 8px 24px rgba(124, 45, 18, 0.3);
+        z-index: 100;
+      }
+      .ps a { color: white; text-decoration: none; opacity: 0.6; padding: 4px 8px; }
+      .ps a:hover { opacity: 1; }
+      .ps strong {
+        background: var(--primary); padding: 4px 12px; border-radius: var(--radius-pill);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="logo">
+        <span class="icon">🦊</span>
+        <span>SQL 教练</span>
+      </div>
+      <nav class="nav">
+        <a href="#" class="active">练习</a>
+        <a href="#">历史</a>
+        <a href="#">报告</a>
+        <a href="#">设置</a>
+      </nav>
+      <div class="streak">连续 7 天</div>
+    </div>
+
+    <div class="layout">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <section class="card">
+          <h3><span class="emoji">📚</span>当前数据集</h3>
+          <div style="font-size:12px; color:var(--ink-muted); margin-bottom:8px;">主题：<b style="color:var(--primary)">电商 🛒</b></div>
+          <div class="schema-card">
+            <div class="name">users</div>
+            <div class="col"><span class="pk">★</span> id <span class="ty">INT</span></div>
+            <div class="col">　 name <span class="ty">VARCHAR(50)</span></div>
+            <div class="col">　 email <span class="ty">VARCHAR(100)</span></div>
+          </div>
+          <div class="schema-card">
+            <div class="name">orders</div>
+            <div class="col"><span class="pk">★</span> id <span class="ty">INT</span></div>
+            <div class="col">　 user_id <span class="ty">INT</span> →users</div>
+            <div class="col">　 total <span class="ty">DECIMAL</span></div>
+          </div>
+          <div class="schema-card">
+            <div class="name">products</div>
+            <div class="col"><span class="pk">★</span> id <span class="ty">INT</span></div>
+            <div class="col">　 name <span class="ty">VARCHAR(100)</span></div>
+            <div class="col">　 price <span class="ty">DECIMAL</span></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3><span class="emoji">🎯</span>选择难度</h3>
+          <div class="difficulty-rainbow">
+            <button class="l1">L1</button>
+            <button class="l2">L2</button>
+            <button class="l3 active">L3</button>
+            <button class="l4">L4</button>
+          </div>
+          <div style="text-align:center; margin-top:10px; font-size:12px; color:var(--ink-muted);">难点 · 含子查询、量词等</div>
+        </section>
+
+        <section class="card">
+          <h3><span class="emoji">🏷️</span>知识点</h3>
+          <div class="topic-chips">
+            <div class="chip">单表查询</div>
+            <div class="chip">WHERE</div>
+            <div class="chip">JOIN</div>
+            <div class="chip">聚合</div>
+            <div class="chip checked">相关子查询</div>
+            <div class="chip checked">EXISTS</div>
+            <div class="chip">全称量词</div>
+            <div class="chip">EXCEPT</div>
+            <div class="chip">UNION</div>
+          </div>
+        </section>
+      </aside>
+
+      <!-- Main -->
+      <main class="main">
+        <section class="question-hero">
+          <div class="badges">
+            <span class="badge badge-l3">🔥 L3 难点</span>
+            <span class="badge badge-topic">EXISTS</span>
+            <span class="badge badge-topic">相关子查询</span>
+            <span class="badge badge-rows">期望 3 行</span>
+          </div>
+          <h2>查询所有曾下过订单的用户姓名 🛍️</h2>
+          <p>
+            数据库中有 <em>users</em> 与 <em>orders</em> 两张表。请使用<em>相关子查询</em>配合 <em>EXISTS</em> 子句，找出所有曾经在 orders 表中出现过的 user。<br>
+            小提示：<em>不要使用 IN 与 JOIN 写法</em>。
+          </p>
+        </section>
+
+        <section class="editor-card">
+          <div class="editor-tab">solution.sql</div>
+          <div class="editor" contenteditable="true"><span class="kw">SELECT</span> u.name <span class="kw">FROM</span> users u
+<span class="kw">WHERE EXISTS</span> (
+  <span class="kw">SELECT</span> 1 <span class="kw">FROM</span> orders o
+  <span class="kw">WHERE</span> o.user_id = u.id
+);</div>
+          <div class="actions">
+            <button class="btn btn-primary">提交答案</button>
+            <button class="btn">格式化</button>
+            <button class="btn btn-ghost">重置数据库</button>
+            <span style="margin-left:auto; font-size:12px; color:var(--ink-muted);">⌘ + Enter 快捷提交</span>
+          </div>
+        </section>
+
+        <section class="verdict verdict-correct">
+          <div>
+            <div style="font-size: 18px;">回答正确！🎊</div>
+            <div style="font-weight: 500; font-size: 13px; opacity: 0.85;">你的解返回了 3 行，与参考答案完全一致。</div>
+          </div>
+          <div class="xp">10</div>
+        </section>
+
+        <section class="result-card">
+          <h3><span class="emoji">📊</span>查询结果（3 行）</h3>
+          <table class="result-table">
+            <thead><tr><th>name</th></tr></thead>
+            <tbody>
+              <tr><td>Alice</td></tr>
+              <tr><td>Bob</td></tr>
+              <tr><td>Charlie</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="tutor-card">
+          <h3><span class="emoji">💬</span>错题问答 · 跟小狐狸聊聊</h3>
+          <div class="tutor-thread">
+            <div class="bubble assistant">
+              漂亮——这就是 EXISTS 的标准模式。注意到 SELECT 1 而不是 SELECT * 了吗？这是个老派习惯，因为 EXISTS 只在乎"有没有"，不在乎"是什么"。
+            </div>
+            <div class="bubble user">为什么这种场景不能用 IN？</div>
+            <div class="bubble assistant">
+              可以——但 EXISTS 在 orders 表特别大、且 user_id 上有索引时通常更快，因为它一旦找到一行就短路返回。IN 则需要先扫完整个子查询。
+            </div>
+          </div>
+          <div class="tutor-input">
+            <input type="text" placeholder="还有什么想问的？">
+            <button class="btn btn-primary" style="border-radius:999px;">发送 ✨</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="ps">
+      <a href="./variant-b.html">←</a>
+      <strong>C · Soft Edu</strong>
+      <a href="./variant-a.html">→</a>
+    </div>
+  </body>
+</html>

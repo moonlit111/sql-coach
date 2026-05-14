@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SQL 教练 · Variant B — Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --bg: #0a0a0a;
+        --bg-alt: #0f0f0f;
+        --bg-panel: #131313;
+        --border: #1f1f1f;
+        --border-bright: #2a2a2a;
+        --green: #50fa7b;
+        --green-dim: #2d6b3a;
+        --green-bg: rgba(80, 250, 123, 0.08);
+        --amber: #f1c40f;
+        --amber-dim: #8a6d04;
+        --red: #ff5555;
+        --cyan: #8be9fd;
+        --magenta: #ff79c6;
+        --purple: #bd93f9;
+        --text: #d4d4d4;
+        --text-dim: #6a6a6a;
+        --text-muted: #444;
+        --mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html { background: var(--bg); }
+      body {
+        margin: 0; padding: 0;
+        background:
+          radial-gradient(circle at 20% 0%, rgba(80, 250, 123, 0.04), transparent 40%),
+          radial-gradient(circle at 80% 100%, rgba(241, 196, 15, 0.03), transparent 40%),
+          var(--bg);
+        background-attachment: fixed;
+        color: var(--text);
+        font-family: var(--mono);
+        font-size: 13px;
+        line-height: 1.6;
+        min-height: 100vh;
+        /* CRT scanline */
+        position: relative;
+      }
+      body::before {
+        content: '';
+        position: fixed; inset: 0;
+        background-image: repeating-linear-gradient(
+          0deg,
+          rgba(80, 250, 123, 0.025) 0px,
+          rgba(80, 250, 123, 0.025) 1px,
+          transparent 1px, transparent 3px
+        );
+        pointer-events: none; z-index: 1;
+      }
+      .wrap { position: relative; z-index: 2; }
+
+      /* ── Top bar (terminal-style window chrome) ── */
+      .topbar {
+        background: var(--bg-alt); border-bottom: 1px solid var(--border-bright);
+        padding: 8px 16px;
+        display: flex; align-items: center; gap: 16px;
+        font-size: 12px;
+        position: sticky; top: 0; z-index: 10;
+      }
+      .dots { display: flex; gap: 6px; }
+      .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--text-muted); }
+      .dot.r { background: #ff5f56; }
+      .dot.y { background: #ffbd2e; }
+      .dot.g { background: #27c93f; }
+      .topbar .title { color: var(--text-dim); flex: 1; text-align: center; }
+      .topbar .title b { color: var(--green); }
+      .topbar .status { color: var(--text-dim); font-size: 11px; }
+      .topbar .status .live { color: var(--green); animation: blink 1.5s infinite; }
+      @keyframes blink { 50% { opacity: 0.3; } }
+
+      /* Nav */
+      .nav-bar {
+        background: var(--bg-alt); border-bottom: 1px solid var(--border);
+        padding: 0 16px;
+        display: flex; gap: 0;
+      }
+      .nav-bar a {
+        padding: 10px 18px; color: var(--text-dim);
+        text-decoration: none; font-size: 12px;
+        border-right: 1px solid var(--border);
+        transition: all 0.15s;
+      }
+      .nav-bar a:hover { color: var(--text); background: var(--bg-panel); }
+      .nav-bar a.active {
+        color: var(--green); background: var(--bg);
+        border-bottom: 2px solid var(--green); margin-bottom: -1px;
+      }
+      .nav-bar a.active::before { content: "[" ; color: var(--green-dim); margin-right: 4px; }
+      .nav-bar a.active::after { content: "]"; color: var(--green-dim); margin-left: 4px; }
+
+      /* ── Layout ── */
+      .layout {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 16px;
+        padding: 16px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+      .panel {
+        background: var(--bg-panel);
+        border: 1px solid var(--border);
+        position: relative;
+      }
+      .panel-header {
+        padding: 8px 12px; font-size: 11px;
+        background: var(--bg-alt);
+        border-bottom: 1px solid var(--border);
+        color: var(--text-dim); letter-spacing: 0.05em;
+        display: flex; align-items: center; gap: 8px;
+      }
+      .panel-header .marker { color: var(--green); }
+      .panel-header .num { color: var(--text-muted); margin-left: auto; }
+      .panel-body { padding: 12px; }
+
+      /* Sidebar */
+      .sidebar { display: flex; flex-direction: column; gap: 16px; }
+      .schema-blk {
+        font-size: 12px;
+      }
+      .schema-blk pre {
+        margin: 0; color: var(--text); font-family: var(--mono);
+        line-height: 1.5;
+      }
+      .schema-blk .kw { color: var(--magenta); }
+      .schema-blk .ty { color: var(--cyan); }
+      .schema-blk .id { color: var(--green); }
+      .schema-blk .com { color: var(--text-muted); }
+
+      .difficulty-grid {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+      }
+      .difficulty-grid button {
+        background: transparent; border: 1px solid var(--border-bright);
+        color: var(--text-dim); padding: 6px 4px;
+        font-family: var(--mono); font-size: 11px; cursor: pointer;
+        transition: all 0.15s;
+      }
+      .difficulty-grid button:hover { border-color: var(--green-dim); color: var(--text); }
+      .difficulty-grid button.active {
+        background: var(--green-bg); border-color: var(--green);
+        color: var(--green); box-shadow: 0 0 12px rgba(80, 250, 123, 0.3);
+      }
+
+      .topic-grid { display: flex; flex-wrap: wrap; gap: 4px; }
+      .topic-grid label {
+        font-size: 11px; padding: 3px 8px;
+        border: 1px solid var(--border-bright); cursor: pointer;
+        color: var(--text-dim); user-select: none;
+      }
+      .topic-grid label:hover { color: var(--text); border-color: var(--text-dim); }
+      .topic-grid label.checked {
+        color: var(--amber); border-color: var(--amber-dim);
+        background: rgba(241, 196, 15, 0.06);
+      }
+      .topic-grid label.checked::before { content: "× "; }
+      .topic-grid label::before { content: "+ "; color: var(--text-muted); }
+      .topic-grid input { display: none; }
+
+      /* Main column */
+      .main { display: flex; flex-direction: column; gap: 16px; }
+
+      .question-blk pre {
+        margin: 0; font-family: var(--mono); white-space: pre-wrap;
+        color: var(--text); font-size: 13px; line-height: 1.7;
+      }
+      .question-meta {
+        margin-bottom: 12px; padding-bottom: 12px;
+        border-bottom: 1px dashed var(--border-bright);
+        display: flex; gap: 12px; font-size: 11px; color: var(--text-dim);
+      }
+      .question-meta span { padding: 2px 8px; border: 1px solid var(--border-bright); }
+      .question-meta .lvl { color: var(--amber); border-color: var(--amber-dim); }
+      .question-meta .topic { color: var(--magenta); border-color: rgba(255,121,198,0.3); }
+      .question-blk h2 {
+        margin: 0 0 12px; font-size: 16px; font-weight: 600; color: var(--green);
+      }
+      .question-blk h2::before { content: "❯ "; color: var(--green-dim); }
+      .question-blk .body { color: var(--text); }
+      .question-blk .body em { color: var(--amber); font-style: normal; }
+
+      .editor-area {
+        position: relative;
+        font-family: var(--mono);
+      }
+      .prompt {
+        font-size: 11px; color: var(--text-muted); margin-bottom: 4px;
+      }
+      .prompt::before { content: "$ "; color: var(--green); }
+      .editor {
+        background: var(--bg);
+        border: 1px solid var(--border-bright);
+        padding: 12px;
+        color: var(--green);
+        font-family: var(--mono); font-size: 13px;
+        min-height: 140px;
+        white-space: pre-wrap;
+        line-height: 1.7;
+        outline: none;
+      }
+      .editor:focus {
+        border-color: var(--green-dim);
+        box-shadow: 0 0 0 2px var(--green-bg);
+      }
+      .editor .kw { color: var(--magenta); }
+      .editor .str { color: var(--amber); }
+
+      .actions {
+        display: flex; gap: 8px; padding: 8px 0; flex-wrap: wrap;
+      }
+      .actions button {
+        background: transparent; border: 1px solid var(--border-bright);
+        color: var(--text); padding: 6px 14px;
+        font-family: var(--mono); font-size: 12px; cursor: pointer;
+        transition: all 0.15s;
+      }
+      .actions button:hover { border-color: var(--green); color: var(--green); }
+      .actions button.primary {
+        border-color: var(--green); color: var(--green); background: var(--green-bg);
+      }
+      .actions button.primary:hover { background: var(--green); color: var(--bg); }
+      .actions button.danger:hover { border-color: var(--red); color: var(--red); }
+      .actions kbd {
+        margin-left: auto; font-size: 10px; color: var(--text-muted);
+        background: var(--bg); padding: 2px 6px; border: 1px solid var(--border);
+      }
+
+      /* Verdict */
+      .verdict {
+        padding: 10px 14px; font-size: 13px;
+        border: 1px solid;
+        display: flex; align-items: center; gap: 12px;
+      }
+      .verdict.correct {
+        border-color: var(--green); color: var(--green); background: var(--green-bg);
+      }
+      .verdict.wrong {
+        border-color: var(--red); color: var(--red); background: rgba(255, 85, 85, 0.06);
+      }
+      .verdict::before {
+        font-weight: 700; padding: 2px 8px; background: currentColor;
+      }
+      .verdict.correct::before { content: "PASS"; color: var(--bg) !important; }
+      .verdict.wrong::before { content: "FAIL"; color: var(--bg) !important; }
+
+      .result-table {
+        width: 100%; border-collapse: collapse;
+        font-family: var(--mono); font-size: 12px;
+      }
+      .result-table th, .result-table td {
+        text-align: left; padding: 6px 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      .result-table th {
+        color: var(--cyan); background: var(--bg-alt);
+        font-weight: 600; text-transform: uppercase; font-size: 11px;
+        letter-spacing: 0.05em;
+      }
+      .result-table td { color: var(--text); }
+      .result-summary {
+        font-size: 11px; color: var(--text-dim); margin-top: 8px;
+      }
+      .result-summary code { color: var(--green); }
+
+      /* Tutor */
+      .tutor-thread { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
+      .tutor-msg {
+        font-size: 12px; line-height: 1.6;
+        padding: 8px 12px; border-left: 2px solid;
+      }
+      .tutor-msg[data-role="assistant"] {
+        border-color: var(--green); color: var(--text);
+        background: var(--green-bg);
+      }
+      .tutor-msg[data-role="user"] {
+        border-color: var(--amber); color: var(--text);
+        background: rgba(241, 196, 15, 0.04);
+      }
+      .tutor-msg::before {
+        display: block; font-size: 10px; color: var(--text-dim);
+        margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;
+      }
+      .tutor-msg[data-role="assistant"]::before { content: "AI://tutor"; color: var(--green-dim); }
+      .tutor-msg[data-role="user"]::before { content: "user@local"; color: var(--amber-dim); }
+
+      .tutor-input { display: flex; gap: 8px; margin-top: 12px; }
+      .tutor-input input {
+        flex: 1; background: var(--bg); border: 1px solid var(--border-bright);
+        color: var(--text); padding: 8px 12px;
+        font-family: var(--mono); font-size: 12px;
+      }
+      .tutor-input input:focus { outline: none; border-color: var(--green); }
+
+      /* Floating prototype switcher */
+      .ps {
+        position: fixed; bottom: 12px; left: 50%;
+        transform: translateX(-50%);
+        background: var(--bg-alt); color: var(--green);
+        padding: 6px 12px; border: 1px solid var(--green);
+        font-family: var(--mono); font-size: 12px;
+        display: flex; align-items: center; gap: 8px;
+        box-shadow: 0 0 24px rgba(80, 250, 123, 0.2);
+        z-index: 100;
+      }
+      .ps a { color: var(--text-dim); text-decoration: none; padding: 2px 6px; }
+      .ps a:hover { color: var(--green); }
+      .ps strong { color: var(--green); padding: 2px 8px; background: var(--green-bg); }
+
+      /* Misc */
+      .ascii-rule { color: var(--text-muted); font-size: 11px; margin: 4px 0; user-select: none; }
+
+      /* fancy box drawing for special block */
+      .boxed {
+        border: 1px solid var(--green-dim); padding: 12px 16px;
+        position: relative; background: var(--bg);
+      }
+      .boxed::before {
+        content: attr(data-label);
+        position: absolute; top: -8px; left: 12px;
+        background: var(--bg-panel); padding: 0 8px;
+        color: var(--green); font-size: 11px;
+      }
+
+      /* Cursor blink for the editor */
+      .editor::after {
+        content: "▊";
+        color: var(--green);
+        animation: blink 1s steps(1, end) infinite;
+        margin-left: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="topbar">
+        <div class="dots">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        </div>
+        <div class="title">~/sql-coach — <b>session.q07</b> — connected to <b>deepseek-chat</b></div>
+        <div class="status">● <span class="live">LIVE</span> · 184 tests passing</div>
+      </div>
+
+      <nav class="nav-bar">
+        <a href="#" class="active">practice</a>
+        <a href="#">history</a>
+        <a href="#">report</a>
+        <a href="#">settings</a>
+      </nav>
+
+      <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+          <section class="panel">
+            <div class="panel-header"><span class="marker">▸</span>schema · ecommerce<span class="num">3 tables</span></div>
+            <div class="panel-body schema-blk">
+<pre><span class="com">-- users</span>
+<span class="kw">CREATE TABLE</span> <span class="id">users</span> (
+  id    <span class="ty">INT</span>          <span class="com">--PK</span>
+  name  <span class="ty">VARCHAR(50)</span>
+  email <span class="ty">VARCHAR(100)</span>
+);
+
+<span class="com">-- orders</span>
+<span class="kw">CREATE TABLE</span> <span class="id">orders</span> (
+  id      <span class="ty">INT</span>           <span class="com">--PK</span>
+  user_id <span class="ty">INT</span>           <span class="com">--FK→users</span>
+  total   <span class="ty">DECIMAL(10,2)</span>
+);
+
+<span class="com">-- products</span>
+<span class="kw">CREATE TABLE</span> <span class="id">products</span> (
+  id    <span class="ty">INT</span>           <span class="com">--PK</span>
+  name  <span class="ty">VARCHAR(100)</span>
+  price <span class="ty">DECIMAL(10,2)</span>
+);</pre>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header"><span class="marker">▸</span>difficulty</div>
+            <div class="panel-body">
+              <div class="difficulty-grid">
+                <button>L1</button>
+                <button>L2</button>
+                <button class="active">L3</button>
+                <button>L4</button>
+              </div>
+              <div style="font-size:11px;color:var(--text-dim);margin-top:8px;">
+                L3 · 难点（含相关子查询、EXISTS、全称量词、差集）
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header"><span class="marker">▸</span>topics<span class="num">2 selected</span></div>
+            <div class="panel-body">
+              <div class="topic-grid">
+                <label>单表查询</label>
+                <label>WHERE</label>
+                <label>聚合</label>
+                <label>JOIN</label>
+                <label class="checked">相关子查询</label>
+                <label class="checked">EXISTS</label>
+                <label>全称量词</label>
+                <label>EXCEPT 差集</label>
+                <label>UNION</label>
+              </div>
+            </div>
+          </section>
+        </aside>
+
+        <!-- Main -->
+        <main class="main">
+          <section class="panel">
+            <div class="panel-header"><span class="marker">▸</span>question.07<span class="num">created 2m ago</span></div>
+            <div class="panel-body question-blk">
+              <div class="question-meta">
+                <span class="lvl">L3 · 难点</span>
+                <span class="topic">EXISTS</span>
+                <span class="topic">相关子查询</span>
+                <span style="margin-left:auto;color:var(--cyan)">expected: 3 rows</span>
+              </div>
+              <h2>查询所有曾下过订单的用户姓名</h2>
+              <div class="body">
+数据库中有 <em>users</em> 与 <em>orders</em> 两张表。请使用<em>相关子查询</em>配合 <em>EXISTS</em> 子句，找出所有曾经在 orders 表中出现过的 user。要求：<em>不要使用 IN 与 JOIN 写法</em>。
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header"><span class="marker">▸</span>editor<span class="num">.sql</span></div>
+            <div class="panel-body editor-area">
+              <div class="prompt">user@sql-coach:~/q07$ vim solution.sql</div>
+              <div class="editor" contenteditable="true"><span class="kw">SELECT</span> u.name <span class="kw">FROM</span> users u
+<span class="kw">WHERE EXISTS</span> (
+  <span class="kw">SELECT</span> 1 <span class="kw">FROM</span> orders o
+  <span class="kw">WHERE</span> o.user_id = u.id
+);</div>
+              <div class="actions">
+                <button class="primary">▶ 执行 &amp; 判题</button>
+                <button>format</button>
+                <button class="danger">reset db</button>
+                <kbd>⌘ Enter</kbd>
+              </div>
+            </div>
+          </section>
+
+          <section class="verdict correct">
+            <span>verdict / 多重集匹配 — 你的解返回 3 行 == 参考解 3 行</span>
+            <span style="margin-left:auto;font-size:11px;opacity:0.7;">judged in 3ms · pure-fn</span>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header"><span class="marker">▸</span>result<span class="num">3 rows · 0.2ms</span></div>
+            <div class="panel-body">
+              <table class="result-table">
+                <thead><tr><th>name</th></tr></thead>
+                <tbody>
+                  <tr><td>Alice</td></tr>
+                  <tr><td>Bob</td></tr>
+                  <tr><td>Charlie</td></tr>
+                </tbody>
+              </table>
+              <div class="result-summary">
+                rows: <code>3</code> · cols: <code>1</code> · truncated: <code>false</code>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header"><span class="marker">▸</span>tutor.thread<span class="num">3 turns</span></div>
+            <div class="panel-body">
+              <div class="tutor-thread">
+                <div class="tutor-msg" data-role="assistant">
+                  漂亮——这就是 EXISTS 的标准模式。注意到 SELECT 1 而不是 SELECT * 了吗？这是个老派习惯，因为 EXISTS 只在乎"有没有"，不在乎"是什么"。
+                </div>
+                <div class="tutor-msg" data-role="user">
+                  为什么这种场景不能用 IN？
+                </div>
+                <div class="tutor-msg" data-role="assistant">
+                  可以——但 EXISTS 在 orders 表特别大、且 user_id 上有索引时通常更快，因为它一旦找到一行就短路返回。IN 则需要先扫完整个子查询。
+                </div>
+              </div>
+              <div class="tutor-input">
+                <input type="text" placeholder="$ ask tutor...">
+                <button class="primary" style="border:1px solid var(--green); color:var(--green); background:var(--green-bg); padding: 6px 14px; font-family:var(--mono); font-size:12px;">send ↵</button>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div class="ps">
+      <a href="./variant-a.html">← prev</a>
+      <strong>B · Terminal</strong>
+      <a href="./variant-c.html">next →</a>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SQL 教练 · Variant A — Editorial</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --paper: #faf8f3;
+        --ink: #1a1a1a;
+        --ink-soft: #4a4a4a;
+        --ink-muted: #888;
+        --rule: #d4cfc4;
+        --highlight: #f5e6d3;
+        --accent: #8b1a1a;        /* Oxblood — academic accent */
+        --correct: #2e5e3e;
+        --wrong: #8b1a1a;
+        --serif: "Source Serif 4", "Source Serif Pro", "Iowan Old Style", Georgia, serif;
+        --sans: "Source Sans 3", -apple-system, "PingFang SC", sans-serif;
+        --mono: "JetBrains Mono", ui-monospace, monospace;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--serif);
+        font-size: 16px;
+        line-height: 1.7;
+      }
+      a { color: var(--accent); }
+
+      /* ── Top masthead ── */
+      .masthead {
+        border-bottom: 3px double var(--ink);
+        padding: 24px 48px 16px;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      .masthead h1 {
+        font-size: 40px; font-weight: 700; margin: 0;
+        font-style: italic;
+        letter-spacing: -0.01em;
+      }
+      .masthead h1 small {
+        font-size: 14px; font-style: normal; font-family: var(--sans);
+        font-weight: 400; color: var(--ink-muted); margin-left: 12px;
+        text-transform: uppercase; letter-spacing: 0.15em;
+      }
+      .nav { display: flex; gap: 24px; font-family: var(--sans); font-size: 13px; text-transform: uppercase; letter-spacing: 0.15em; }
+      .nav a { color: var(--ink-soft); text-decoration: none; padding-bottom: 2px; }
+      .nav a.active { color: var(--ink); border-bottom: 2px solid var(--accent); }
+      .nav a:hover { color: var(--ink); }
+
+      /* ── Layout: 2 columns (article + sidebar) ── */
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 64px;
+        padding: 48px;
+        max-width: 1280px;
+        margin: 0 auto;
+      }
+      @media (max-width: 900px) { .layout { grid-template-columns: 1fr; gap: 32px; padding: 24px; } }
+
+      /* ── Article (main) ── */
+      .meta {
+        font-family: var(--sans); font-size: 12px; text-transform: uppercase;
+        letter-spacing: 0.2em; color: var(--ink-muted); margin-bottom: 8px;
+        display: flex; gap: 16px; align-items: center;
+      }
+      .meta .difficulty { color: var(--accent); font-weight: 600; }
+      .meta .topic-tag {
+        background: var(--highlight); color: var(--ink); padding: 2px 8px;
+        text-transform: none; letter-spacing: 0.02em; font-weight: 500;
+      }
+
+      h2.headline {
+        font-size: 36px; line-height: 1.15; margin: 0 0 24px;
+        font-weight: 700; letter-spacing: -0.015em;
+      }
+      .lede {
+        font-size: 19px; line-height: 1.6; color: var(--ink-soft);
+        margin: 0 0 32px; padding-left: 16px;
+        border-left: 3px solid var(--accent);
+      }
+      .lede strong { color: var(--ink); }
+
+      .section-rule {
+        text-align: center; color: var(--ink-muted); margin: 32px 0;
+        font-family: var(--sans); letter-spacing: 0.5em;
+      }
+
+      h3.subhead {
+        font-size: 14px; text-transform: uppercase; letter-spacing: 0.2em;
+        font-family: var(--sans); font-weight: 600; color: var(--ink-muted);
+        margin: 32px 0 12px;
+        border-bottom: 1px solid var(--rule); padding-bottom: 6px;
+      }
+
+      .editor {
+        background: #fff; border: 1px solid var(--rule);
+        font-family: var(--mono); font-size: 14px; line-height: 1.6;
+        padding: 16px; min-height: 140px;
+        color: var(--ink);
+        white-space: pre-wrap;
+      }
+      .editor[contenteditable]:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+      .actions {
+        display: flex; gap: 12px; margin-top: 16px; align-items: center;
+      }
+      button {
+        font-family: var(--sans); font-size: 13px;
+        background: var(--paper); color: var(--ink);
+        border: 1px solid var(--ink); padding: 8px 18px;
+        cursor: pointer; transition: all 0.15s;
+        text-transform: uppercase; letter-spacing: 0.1em;
+      }
+      button:hover { background: var(--ink); color: var(--paper); }
+      button.primary { background: var(--ink); color: var(--paper); }
+      button.primary:hover { background: var(--accent); border-color: var(--accent); }
+      button.ghost { border-color: var(--rule); color: var(--ink-soft); }
+
+      /* Verdict — like a pull-quote */
+      .verdict {
+        margin: 24px 0; padding: 20px 24px;
+        border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+        font-style: italic; font-size: 18px; line-height: 1.6;
+      }
+      .verdict.wrong { color: var(--wrong); border-color: var(--wrong); }
+      .verdict.correct { color: var(--correct); border-color: var(--correct); }
+      .verdict-label {
+        font-style: normal; font-family: var(--sans); font-size: 11px;
+        text-transform: uppercase; letter-spacing: 0.2em;
+        display: block; margin-bottom: 6px; opacity: 0.7;
+      }
+
+      /* Tutor — typeset like an interview */
+      .tutor {
+        margin-top: 32px;
+        padding-top: 32px;
+        border-top: 1px solid var(--rule);
+      }
+      .tutor h3 { font-size: 22px; margin: 0 0 16px; font-style: italic; }
+      .tutor-msg { margin: 16px 0; padding: 0 0 0 24px; }
+      .tutor-msg::before {
+        content: attr(data-speaker);
+        display: inline-block;
+        font-family: var(--sans); font-size: 11px;
+        font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em;
+        color: var(--accent); margin-left: -24px; margin-right: 12px;
+      }
+      .tutor-input {
+        margin-top: 24px; display: flex; gap: 12px;
+      }
+      .tutor-input input {
+        flex: 1; padding: 10px 14px; border: 1px solid var(--ink);
+        background: #fff; font-family: var(--serif); font-size: 15px;
+      }
+
+      /* Result table — newspaper-style */
+      .result-table {
+        width: 100%; border-collapse: collapse;
+        margin-top: 12px; font-family: var(--sans); font-size: 14px;
+      }
+      .result-table th, .result-table td {
+        text-align: left; padding: 8px 12px;
+      }
+      .result-table thead {
+        border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink);
+      }
+      .result-table th {
+        font-weight: 600; font-size: 11px; text-transform: uppercase;
+        letter-spacing: 0.15em; color: var(--ink-muted);
+      }
+      .result-table tr { border-bottom: 1px solid var(--rule); }
+      .result-table tr:last-child { border-bottom: 2px solid var(--ink); }
+
+      /* Sidebar */
+      aside {
+        font-size: 14px; line-height: 1.6;
+      }
+      aside section { margin-bottom: 40px; }
+      aside h4 {
+        font-size: 12px; text-transform: uppercase; letter-spacing: 0.2em;
+        font-family: var(--sans); font-weight: 700; color: var(--ink-muted);
+        margin: 0 0 12px; padding-bottom: 6px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .schema-table {
+        font-family: var(--mono); font-size: 12px;
+        background: #fff; padding: 10px 12px; border: 1px solid var(--rule);
+        margin-bottom: 8px;
+      }
+      .schema-table .name {
+        font-family: var(--sans); font-weight: 700; font-size: 13px;
+        margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px dashed var(--rule);
+        display: flex; justify-content: space-between;
+      }
+      .schema-table .name small {
+        font-weight: 400; color: var(--ink-muted); font-style: italic;
+      }
+      .schema-table .col { color: var(--ink-soft); }
+      .schema-table .col .ty { color: var(--accent); }
+
+      .difficulty-list {
+        list-style: none; padding: 0; margin: 0; font-family: var(--sans); font-size: 14px;
+      }
+      .difficulty-list li {
+        padding: 8px 0; border-bottom: 1px dotted var(--rule);
+        display: flex; justify-content: space-between;
+      }
+      .difficulty-list li:last-child { border: 0; }
+      .difficulty-list .lvl { font-weight: 600; color: var(--ink-muted); }
+      .difficulty-list .lvl-active { color: var(--accent); border-left: 3px solid var(--accent); padding-left: 8px; margin-left: -11px; }
+
+      .topic-list { font-family: var(--sans); font-size: 13px; margin: 0; padding: 0; list-style: none; }
+      .topic-list li {
+        padding: 4px 0; cursor: pointer;
+        color: var(--ink-soft);
+      }
+      .topic-list li.checked { color: var(--ink); font-weight: 600; }
+      .topic-list li::before {
+        content: "○ "; color: var(--ink-muted); margin-right: 4px;
+      }
+      .topic-list li.checked::before { content: "● "; color: var(--accent); }
+
+      /* Floating prototype switcher */
+      .ps {
+        position: fixed; bottom: 16px; left: 50%;
+        transform: translateX(-50%);
+        background: var(--ink); color: var(--paper);
+        padding: 8px 16px; border-radius: 999px;
+        display: flex; align-items: center; gap: 12px;
+        font-family: var(--sans); font-size: 13px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        z-index: 100;
+      }
+      .ps a { color: var(--paper); text-decoration: none; padding: 4px 10px; border-radius: 999px; }
+      .ps a:hover { background: rgba(255,255,255,0.15); }
+      .ps strong { padding: 4px 10px; background: var(--accent); border-radius: 999px; }
+    </style>
+  </head>
+  <body>
+    <header class="masthead">
+      <h1>SQL 教练 <small>· The Editorial</small></h1>
+      <nav class="nav">
+        <a href="#" class="active">练习</a>
+        <a href="#">历史</a>
+        <a href="#">报告</a>
+        <a href="#">设置</a>
+      </nav>
+    </header>
+
+    <div class="layout">
+      <main>
+        <div class="meta">
+          <span>第 7 题</span>
+          <span class="difficulty">Level 3 · 难点</span>
+          <span class="topic-tag">EXISTS / NOT EXISTS</span>
+          <span class="topic-tag">相关子查询</span>
+        </div>
+
+        <h2 class="headline">查询所有曾下过订单的用户姓名</h2>
+        <p class="lede">
+          数据库中有 <strong>users</strong> 与 <strong>orders</strong> 两张表。请使用相关子查询配合 <strong>EXISTS</strong> 子句，找出所有曾经在 orders 表中出现过的 user。要求：<em>不要使用 IN 与 JOIN 写法</em>。
+        </p>
+
+        <div class="section-rule">·  ·  ·</div>
+
+        <h3 class="subhead">你的解答</h3>
+        <div class="editor" contenteditable="true">SELECT u.name FROM users u
+WHERE EXISTS (
+  SELECT 1 FROM orders o
+  WHERE o.user_id = u.id
+);</div>
+
+        <div class="actions">
+          <button class="primary">提交答案</button>
+          <button>格式化 SQL</button>
+          <button class="ghost">重置数据库</button>
+        </div>
+
+        <div class="verdict correct">
+          <span class="verdict-label">Verdict</span>
+          回答正确 — 你的解返回了 <strong>3 行</strong>，与参考答案在多重集语义下完全一致。
+        </div>
+
+        <h3 class="subhead">查询结果（3 行）</h3>
+        <table class="result-table">
+          <thead><tr><th>name</th></tr></thead>
+          <tbody>
+            <tr><td>Alice</td></tr>
+            <tr><td>Bob</td></tr>
+            <tr><td>Charlie</td></tr>
+          </tbody>
+        </table>
+
+        <section class="tutor">
+          <h3>错题问答 · 与 Tutor 的对话</h3>
+          <div class="tutor-msg" data-speaker="Tutor">
+            漂亮——这就是 EXISTS 的标准模式。注意到 <em>SELECT 1</em> 而不是 <em>SELECT *</em> 了吗？这是个老派习惯，因为 EXISTS 只在乎"有没有"，不在乎"是什么"。
+          </div>
+          <div class="tutor-msg" data-speaker="你">
+            为什么这种场景不能用 IN？
+          </div>
+          <div class="tutor-msg" data-speaker="Tutor">
+            可以——但 EXISTS 在 orders 表特别大、且 user_id 上有索引时通常更快，因为它一旦找到一行就短路返回。IN 则需要先扫完整个子查询。
+          </div>
+          <div class="tutor-input">
+            <input type="text" placeholder="继续追问……">
+            <button class="primary">发送</button>
+          </div>
+        </section>
+      </main>
+
+      <aside>
+        <section>
+          <h4>当前数据集 · 电商</h4>
+          <div class="schema-table">
+            <div class="name">users <small>customers</small></div>
+            <div class="col">id <span class="ty">INT</span> · <em>PK</em></div>
+            <div class="col">name <span class="ty">VARCHAR(50)</span></div>
+            <div class="col">email <span class="ty">VARCHAR(100)</span></div>
+          </div>
+          <div class="schema-table">
+            <div class="name">orders <small>purchases</small></div>
+            <div class="col">id <span class="ty">INT</span> · <em>PK</em></div>
+            <div class="col">user_id <span class="ty">INT</span> · <em>FK→users</em></div>
+            <div class="col">total <span class="ty">DECIMAL(10,2)</span></div>
+          </div>
+          <div class="schema-table">
+            <div class="name">products <small>catalog</small></div>
+            <div class="col">id <span class="ty">INT</span> · <em>PK</em></div>
+            <div class="col">name <span class="ty">VARCHAR(100)</span></div>
+            <div class="col">price <span class="ty">DECIMAL(10,2)</span></div>
+          </div>
+        </section>
+
+        <section>
+          <h4>难度选择</h4>
+          <ul class="difficulty-list">
+            <li><span class="lvl">L1</span><span>基础</span></li>
+            <li><span class="lvl">L2</span><span>进阶</span></li>
+            <li><span class="lvl lvl-active">L3</span><span>难点</span></li>
+            <li><span class="lvl">L4</span><span>综合</span></li>
+          </ul>
+        </section>
+
+        <section>
+          <h4>知识点</h4>
+          <ul class="topic-list">
+            <li>单表查询</li>
+            <li>WHERE 过滤</li>
+            <li>聚合函数</li>
+            <li>内连接</li>
+            <li class="checked">相关子查询</li>
+            <li class="checked">EXISTS / NOT EXISTS</li>
+            <li>全称量词转化</li>
+            <li>EXCEPT 差集</li>
+          </ul>
+        </section>
+      </aside>
+    </div>
+
+    <div class="ps">
+      <a href="./variant-c.html">←</a>
+      <strong>A · Editorial</strong>
+      <a href="./variant-b.html">→</a>
+    </div>
+  </body>
+</html>
