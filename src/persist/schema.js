@@ -8,6 +8,9 @@
 export const PersistKey = Object.freeze({
   SETTINGS:        'sqlcoach.settings.v1',
   CURRENT_SCHEMA:  'sqlcoach.schema.v1',
+  /** Library of databases the user has generated or imported. Array of
+   *  `{ id, name, ddl, seedSql, tables, createdAt, source }` records. */
+  SCHEMA_LIBRARY:  'sqlcoach.schema_library.v1',
   QUESTION_BANK:   'sqlcoach.questions.v1',
   ANSWERS:         'sqlcoach.answers.v1',
   SESSIONS:        'sqlcoach.sessions.v1',

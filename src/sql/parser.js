@@ -47,6 +47,7 @@ export function parse(sql) {
   else if (leadKw === 'INSERT') ast.kind = 'INSERT';
   else if (leadKw === 'UPDATE') ast.kind = 'UPDATE';
   else if (leadKw === 'DELETE') ast.kind = 'DELETE';
+  else if (leadKw === 'REPLACE') ast.kind = 'REPLACE';
   else ast.kind = 'OTHER';
 
   // Whole-stream scan for flags. Token-aware: string literals are already separate
@@ -87,7 +88,17 @@ export function parse(sql) {
       ast.hasJoin = true;
     }
 
-    if (t.value === 'EXISTS') ast.hasExists = true;
+    if (t.value === 'EXISTS') {
+      ast.hasExists = true;
+      // Look back to detect NOT EXISTS. We accept arbitrary whitespace
+      // since `sig` already strips it; punctuation like '(' may interpose.
+      for (let k = i - 1; k >= 0; k--) {
+        const prev = sig[k];
+        if (prev.type === 'punctuation' && prev.value === '(') continue;
+        if (prev.type === 'keyword' && prev.value === 'NOT') ast.hasNotExists = true;
+        break;
+      }
+    }
 
     if (t.value === 'UNION') ast.hasSetOp = 'UNION';
     else if (t.value === 'INTERSECT') ast.hasSetOp = 'INTERSECT';

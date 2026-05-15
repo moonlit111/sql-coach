@@ -4,12 +4,50 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SQL 教练</title>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Noto+Sans+Mono:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./styles/main.css" />
+    <!--
+      sql.js loaded as UMD so it attaches `initSqlJs` to the global scope.
+      We tried `+esm` and `esm.sh` but both ship subtly broken bundles:
+      - esm.sh injects a Node `fs` shim that confuses Emscripten's runtime
+        detection (unenv: fs.readFileSync is not implemented).
+      - jsdelivr `+esm` does not export the factory as default.
+      The classic UMD bundle works in every browser without repackaging.
+    -->
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.11.0/dist/sql-wasm.js"></script>
+    <!--
+      PDF export libraries (used by the Report view only). Loaded async
+      so they don't block the main app boot — the report view checks
+      for `window.html2canvas` / `window.jspdf` at click time and
+      degrades gracefully if either is unavailable.
+    -->
+    <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+    <!--
+      We still declare an importmap so any code (including a future module
+      worker) using bare specifiers like `import 'sql.js'` resolves to the
+      same CDN. This keeps R4.3 satisfied — no bundler needed.
+
+      CodeMirror 6 is loaded as ESM via jsdelivr `+esm`. Each sub-package
+      is mapped explicitly so `@codemirror/state` is shared across imports
+      (without explicit mapping the CDN would deliver multiple copies, and
+      CodeMirror's "extension must come from the same StateField module"
+      contract would fail at runtime). `@lezer/highlight` is needed because
+      our HighlightStyle imports the `tags` enum from it.
+    -->
     <script type="importmap">
       {
         "imports": {
-          "sql.js": "https://esm.sh/sql.js@1.11.0"
+          "sql.js":                    "https://cdn.jsdelivr.net/npm/sql.js@1.11.0/dist/sql-wasm.js",
+          "codemirror":                "https://cdn.jsdelivr.net/npm/codemirror@6.0.1/+esm",
+          "@codemirror/state":         "https://cdn.jsdelivr.net/npm/@codemirror/state@6.4.1/+esm",
+          "@codemirror/view":          "https://cdn.jsdelivr.net/npm/@codemirror/view@6.34.1/+esm",
+          "@codemirror/language":      "https://cdn.jsdelivr.net/npm/@codemirror/language@6.10.3/+esm",
+          "@codemirror/commands":      "https://cdn.jsdelivr.net/npm/@codemirror/commands@6.6.0/+esm",
+          "@codemirror/lang-sql":      "https://cdn.jsdelivr.net/npm/@codemirror/lang-sql@6.8.0/+esm",
+          "@codemirror/autocomplete":  "https://cdn.jsdelivr.net/npm/@codemirror/autocomplete@6.18.1/+esm",
+          "@codemirror/search":        "https://cdn.jsdelivr.net/npm/@codemirror/search@6.5.6/+esm",
+          "@lezer/highlight":          "https://cdn.jsdelivr.net/npm/@lezer/highlight@1.2.1/+esm"
         }
       }
     </script>

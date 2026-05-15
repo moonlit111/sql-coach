@@ -40,12 +40,20 @@ import { mergePartial, withFailure } from './state.js';
  * @param {{
  *   llmClient: { chat: (messages: any[], opts?: any) => Promise<{ content: string }> },
  *   sandbox:   any,
+ *   onProgress?: (event: { node: string, phase: string, attempt: number, status: 'running'|'ok'|'fail', detail?: string }) => void,
  * }} deps
  */
-export function createGraph({ llmClient, sandbox }) {
+export function createGraph({ llmClient, sandbox, onProgress }) {
+  // Tag every progress event with the node name so the UI can route them
+  // (currently only schemaGen and questionGen emit, but tutor/reporter can
+  // adopt the same pattern later).
+  const tagged = (node) => onProgress
+    ? (ev) => onProgress({ node, ...ev })
+    : undefined;
+
   const nodes = {
-    schemaGen:   createSchemaGenNode({ llmClient, sandbox }),
-    questionGen: createQuestionGenNode({ llmClient, sandbox }),
+    schemaGen:   createSchemaGenNode({ llmClient, sandbox, onProgress: tagged('schemaGen') }),
+    questionGen: createQuestionGenNode({ llmClient, sandbox, onProgress: tagged('questionGen') }),
     judge:       createJudgeNode({ sandbox }),
     tutor:       createTutorNode({ llmClient }),  // exposes { firstMessage, followup, resetForNewQuestion }
     reporter:    createReporterNode({ llmClient }),

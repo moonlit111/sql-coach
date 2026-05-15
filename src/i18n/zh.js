@@ -14,6 +14,7 @@ export const ZH = {
   // ------- Navigation -------
   nav: {
     practice: '练习',   // main practice loop entry
+    database: '数据库', // R6 — schema library / generate / import
     history:  '历史',   // R15.1 / R15.4 history & wrong-answer review
     settings: '设置',   // R1.1 settings entry
     report:   '报告',   // R16.1 report entry (gated on ≥5 answers)
@@ -75,7 +76,7 @@ export const ZH = {
 
   // ------- Tutor view (R13) -------
   tutor: {
-    title:       '错题解析',          // R13.1
+    title:       '在线问答',          // R13.1
     placeholder: '继续追问……',        // R13.3 multi-turn input
     send:        '发送',
     thinking:    'Tutor 正在思考…',   // shown while a turn is in flight
@@ -95,6 +96,15 @@ export const ZH = {
   report: {
     title:          '能力报告',        // R16.1
     exportMarkdown: '导出 Markdown',   // R16.4
+    exportPdf:      '导出 PDF',
+    regenerate:     '重新生成',
+    overview:       '总览',
+    difficultyDist: '难度分布',
+    topicMastery:   '知识点掌握度',
+    aiScores:       '多维度能力评分',
+    weakTopics:     '薄弱点 · 重点突破',
+    recommendation: '下一步建议',
+    noAi:           '本次 AI 评估未返回结构化结果，仅展示统计图表。',
   },
 
   // ------- Error toasts (R3 / R14) -------

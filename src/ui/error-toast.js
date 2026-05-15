@@ -76,22 +76,29 @@ export function pickErrorToShow(errors) {
 /**
  * Map a classified error to the user-facing copy. Falls back to the error's
  * own `message` field if no canonical copy exists.
+ *
+ * For bad_response we prefer the diagnostic message attached by the agent
+ * (e.g. "SchemaGen 失败：表 user 行数不足 5") over the generic copy, so
+ * users can see exactly what went wrong instead of "格式异常".
  */
 function copyFor(err) {
   if (!err || typeof err !== 'object') return '';
+  // Always prefer the upstream message when it is informative — otherwise
+  // localised copy from ZH.errors.* is used as a fallback.
+  const upstream = typeof err.message === 'string' && err.message.trim() ? err.message : '';
   switch (err.kind) {
-    case 'unauthorized':    return ZH.errors.unauthorized;
-    case 'rate_limited':    return ZH.errors.rateLimited;
-    case 'server_error':    return ZH.errors.serverError;
-    case 'timeout':         return ZH.errors.timeout;
-    case 'cors':            return ZH.errors.cors;
-    case 'network':         return ZH.errors.network;
-    case 'bad_response':    return ZH.errors.badResponse;
-    case 'sandbox_timeout': return ZH.errors.sandboxTimeout;
-    case 'sandbox_safety':  return ZH.sandbox.rejectedDdl;
-    case 'sandbox_runtime': return err.message ?? '';
-    case 'persist_quota':   return ZH.quota.message;
-    default:                return err.message ?? '';
+    case 'unauthorized':    return upstream || ZH.errors.unauthorized;
+    case 'rate_limited':    return upstream || ZH.errors.rateLimited;
+    case 'server_error':    return upstream || ZH.errors.serverError;
+    case 'timeout':         return upstream || ZH.errors.timeout;
+    case 'cors':            return upstream || ZH.errors.cors;
+    case 'network':         return upstream || ZH.errors.network;
+    case 'bad_response':    return upstream || ZH.errors.badResponse;
+    case 'sandbox_timeout': return upstream || ZH.errors.sandboxTimeout;
+    case 'sandbox_safety':  return upstream || ZH.sandbox.rejectedDdl;
+    case 'sandbox_runtime': return upstream;
+    case 'persist_quota':   return upstream || ZH.quota.message;
+    default:                return upstream;
   }
 }
 

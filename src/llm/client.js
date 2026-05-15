@@ -46,6 +46,8 @@ const TEST_CONNECTION_TIMEOUT_MS = 10_000;
  * @property {'text'|'json_object'} [responseFormat]
  * @property {AbortSignal} [signal]
  * @property {number} [maxTokens]
+ * @property {Record<string, any>} [extraBody]   Vendor-specific fields merged into the JSON body
+ *                                               (e.g. DeepSeek thinking toggle: { thinking: { type: 'disabled' } }).
  */
 
 /**
@@ -130,6 +132,12 @@ export function createLlmClient(config) {
     if (typeof opts.maxTokens === 'number') {
       body.max_tokens = opts.maxTokens;
     }
+    // Vendor-specific extras. For DeepSeek V4 series, the orchestrator passes
+    // `{ thinking: { type: 'disabled' } }` so JSON-mode prompts don't get
+    // mangled by reasoning_content / empty-content edge cases.
+    if (opts.extraBody && typeof opts.extraBody === 'object') {
+      Object.assign(body, opts.extraBody);
+    }
 
     /** @type {Response | null} */
     let response = null;
@@ -167,7 +175,22 @@ export function createLlmClient(config) {
       throw { kind: 'bad_response', message: 'Response body was not a JSON object' };
     }
 
-    const content = json?.choices?.[0]?.message?.content;
+    const message = json?.choices?.[0]?.message;
+    let content = message?.content;
+    // Some vendors (notably DeepSeek V4 thinking mode) may emit reasoning into
+    // `reasoning_content` and leave `content` empty when the model stops mid-CoT.
+    // Surface this clearly so the orchestrator can retry or so the user can
+    // disable thinking mode.
+    if (typeof content === 'string' && content.trim() === '' &&
+        typeof message?.reasoning_content === 'string' && message.reasoning_content.length > 0) {
+      throw {
+        kind: 'bad_response',
+        message:
+          '模型只返回了思考内容（reasoning_content），没有最终答案。' +
+          'DeepSeek V4 系列在 thinking + JSON 模式下偶发空 content，' +
+          '建议改用 deepseek-v4-flash 并关闭 thinking。',
+      };
+    }
     if (typeof content !== 'string') {
       throw { kind: 'bad_response', message: 'Missing message.content in response' };
     }
@@ -179,20 +202,48 @@ export function createLlmClient(config) {
    * 10 second AbortController timeout. Returns a structured result instead
    * of throwing — the UI surfaces both branches.
    *
+   * Strategy: ask the model to return a tiny JSON object so we exercise the
+   * full pipeline that real Agents use (JSON mode + non-empty content). For
+   * vendors that have to opt out of reasoning to make JSON mode reliable
+   * (DeepSeek V4 series), the corresponding extras are passed automatically.
+   *
    * @returns {Promise<{ ok: boolean, latencyMs: number, sample?: string, error?: any }>}
    */
   async function testConnection() {
     const start = Date.now();
+    // Inline lookup — keep client.js free of orchestrator imports.
+    const m = String(config.modelName).toLowerCase();
+    const extras = m.includes('deepseek')
+      ? { thinking: { type: 'disabled' } }
+      : undefined;
     try {
       const r = await chat(
-        [{ role: 'user', content: 'ping' }],
-        { timeoutMs: TEST_CONNECTION_TIMEOUT_MS, maxTokens: 1 },
+        [
+          { role: 'system', content: 'Reply ONLY with the JSON {"ok":true}. Nothing else.' },
+          { role: 'user',   content: 'Return JSON {"ok":true}.' },
+        ],
+        {
+          timeoutMs: TEST_CONNECTION_TIMEOUT_MS,
+          maxTokens: 32,
+          responseFormat: 'json_object',
+          ...(extras ? { extraBody: extras } : {}),
+        },
       );
-      return {
-        ok: true,
-        latencyMs: Date.now() - start,
-        sample: typeof r.content === 'string' ? r.content.slice(0, 100) : '',
-      };
+      const sample = typeof r.content === 'string' ? r.content.slice(0, 100) : '';
+      // The minimum bar is non-empty content; the LLM may pad with whitespace
+      // but we don't require strict JSON here so models without a JSON mode
+      // still pass when their plain reply is sane.
+      if (sample.trim() === '') {
+        return {
+          ok: false,
+          latencyMs: Date.now() - start,
+          error: {
+            kind: 'bad_response',
+            message: '模型返回空内容（可能是 thinking + JSON 模式冲突）',
+          },
+        };
+      }
+      return { ok: true, latencyMs: Date.now() - start, sample };
     } catch (e) {
       return { ok: false, latencyMs: Date.now() - start, error: e };
     }

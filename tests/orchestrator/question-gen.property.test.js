@@ -116,11 +116,43 @@ describe('validateQuestion — rejects each violation class', () => {
     expect(validateQuestion(q).ok).toBe(false);
   });
 
-  it('rejects a refSql containing a non-ASCII character (R5.3)', () => {
+  it('rejects a refSql with a non-ASCII identifier (R5.3, relaxed)', () => {
     const q = { ...baseValidL1(), refSql: 'SELECT 列 FROM users' };
     const r = validateQuestion(q);
     expect(r.ok).toBe(false);
     expect(r.reason).toMatch(/ASCII/);
+  });
+
+  it('accepts a refSql with Chinese inside a string literal (R5.3, relaxed)', () => {
+    const q = {
+      ...baseValidL1(),
+      // Chinese value matches Chinese seed data — practical case.
+      refSql: "SELECT id FROM users WHERE name = '张三'",
+    };
+    const r = validateQuestion(q);
+    expect(r.ok).toBe(true);
+  });
+
+  it('normalises fullwidth punctuation outside string literals', () => {
+    const q = {
+      ...baseValidL1(),
+      // Fullwidth comma between SELECT columns — a typical CJK-IME typo.
+      refSql: 'SELECT id，name FROM users',
+    };
+    const r = validateQuestion(q);
+    expect(r.ok).toBe(true);
+    // The normaliser should have rewritten the SQL in place.
+    expect(q.refSql).toBe('SELECT id,name FROM users');
+  });
+
+  it('rejects an unclosed string literal in refSql', () => {
+    const q = {
+      ...baseValidL1(),
+      refSql: "SELECT id FROM users WHERE name = '张三",
+    };
+    const r = validateQuestion(q);
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/未闭合|ASCII/);
   });
 
   it('rejects an L3 question that lacks a course-emphasis topic (R8.4 / R9)', () => {
@@ -336,11 +368,13 @@ test.prop(
   },
   { numRuns: 50 },
 )(
-  'A non-ASCII char anywhere in refSql triggers rejection (R5.3)',
+  'A non-ASCII char outside strings/comments triggers rejection (R5.3, relaxed)',
   ({ cjk }) => {
     const q = {
       prompt: '查询 users 表的 id',
-      refSql: 'SELECT id FROM users -- ' + cjk,
+      // CJK as an identifier (not in a comment, not in a string) — must
+      // still be rejected under the relaxed rule.
+      refSql: `SELECT ${cjk} FROM users`,
       topics: ['single_table_select'],
       difficulty: 'L1',
       is_ordered: false,

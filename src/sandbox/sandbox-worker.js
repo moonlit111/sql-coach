@@ -13,9 +13,35 @@
 //   { id, type: 'ok' }
 //   { id, type: 'result', result: ResultSet | SqlError }
 //   { id, type: 'error',  error: string }
+//
+// sql.js is loaded via importScripts so we get the same UMD factory
+// (`globalThis.initSqlJs`) the main thread uses. We avoid `import` here
+// because not all CDN ESM bundles cooperate when the source code does
+// runtime Node-feature detection (esm.sh injects a Node shim that breaks
+// Emscripten; jsdelivr `+esm` does not export the factory as default).
 
-import initSqlJs from 'sql.js';
 import { safetyFilter } from './safety-filter.js';
+
+// Pull in sql.js as a side-effecting UMD that sets `self.initSqlJs`.
+// This works in both classic and module workers (importScripts is
+// allowed in classic; module workers we should avoid in production).
+// In tests/node we never instantiate this worker — the in-process
+// backend is used instead.
+if (typeof self.initSqlJs !== 'function') {
+  try {
+    // eslint-disable-next-line no-undef
+    importScripts('https://cdn.jsdelivr.net/npm/sql.js@1.11.0/dist/sql-wasm.js');
+  } catch (e) {
+    // If we're in a `type: 'module'` worker, importScripts won't be
+    // available. Fall back to a dynamic import of the same UMD; it will
+    // execute and assign `self.initSqlJs` as a side effect.
+    await import('https://cdn.jsdelivr.net/npm/sql.js@1.11.0/dist/sql-wasm.js');
+  }
+}
+const initSqlJsFactory = self.initSqlJs;
+if (typeof initSqlJsFactory !== 'function') {
+  throw new Error('sql.js worker factory was not initialised');
+}
 
 let SQL = null;
 let db = null;
@@ -24,7 +50,7 @@ self.addEventListener('message', async (ev) => {
   const { type, id, payload } = ev.data || {};
   try {
     if (type === 'init') {
-      if (!SQL) SQL = await initSqlJs(payload?.opts || {});
+      if (!SQL) SQL = await initSqlJsFactory(payload?.opts || {});
       self.postMessage({ id, type: 'ok' });
       return;
     }

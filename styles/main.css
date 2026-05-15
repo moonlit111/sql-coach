@@ -32,6 +32,7 @@
   /* PASS reserved fluorescent */
   --pass:         #50fa7b;
   --pass-bg:      rgba(80, 250, 123, 0.10);
+  --ok:           var(--pass);
 
   --warn:         #f9e2af;
   --warn-dim:     #6e6240;
@@ -41,15 +42,24 @@
   --fail-bg:      rgba(243, 139, 168, 0.10);
 
   --info:         #89b4fa;
+  --info-dim:     #4a6285;
+  --info-bg:      rgba(137, 180, 250, 0.08);
+  --info-glow:    rgba(137, 180, 250, 0.18);
   --magenta:      #cba6f7;
 
-  /* Type scale */
-  --fs-xs:        11px;
-  --fs-sm:        12px;
-  --fs-base:      13px;
-  --fs-md:        14px;
-  --fs-lg:        18px;
-  --fs-xl:        20px;
+  /* Type scale — bumped +1px globally for Chinese legibility (Windows
+     ClearType renders sub-12px CJK glyphs poorly). The previous scale
+     was 10/11/12/13/14/18/20; this is 11/12/13/14/15/19/22. The names
+     keep their semantics so per-element overrides still read clearly.
+     --fs-2xl is reserved for hero numbers (report stat cards). */
+  --fs-xxs:       11px;
+  --fs-xs:        12px;
+  --fs-sm:        13px;
+  --fs-base:      14px;
+  --fs-md:        15px;
+  --fs-lg:        19px;
+  --fs-xl:        22px;
+  --fs-2xl:       28px;
 
   /* Spacing */
   --gap-xs:       8px;
@@ -59,7 +69,7 @@
 
   --r:            4px;
 
-  --mono: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Mono", "Consolas", monospace;
+  --mono: "JetBrains Mono", "Noto Sans Mono", ui-monospace, "SF Mono", "Cascadia Mono", "Consolas", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace;
 }
 
 /* ──────────────────────────────────────────────────
@@ -222,28 +232,9 @@ label > span:first-child {
 label > span:first-child::before { content: "▸ "; color: var(--accent-dim); }
 
 /* ──────────────────────────────────────────────────
-   Practice view — three column layout
+   Practice view — superseded layout (kept here only as a marker;
+   the live rules are at the bottom of this file).
    ────────────────────────────────────────────────── */
-.practice-view {
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr) 360px;
-  gap: var(--gap-md);
-}
-@media (max-width: 1280px) {
-  .practice-view {
-    grid-template-columns: 220px minmax(0, 1fr) 320px;
-    gap: var(--gap-sm);
-  }
-}
-@media (max-width: 1024px) {
-  .practice-view { grid-template-columns: 1fr; }
-}
-
-.practice-side, .practice-main, .practice-tutor { min-width: 0; }
-.practice-tutor { grid-column: 3; }
-@media (max-width: 1024px) {
-  .practice-tutor { grid-column: 1; }
-}
 
 /* Theme picker */
 .theme-picker { border: 0; padding: 0; margin: 0; }
@@ -295,20 +286,9 @@ label > span:first-child::before { content: "▸ "; color: var(--accent-dim); }
 .topic-chips { border: 0; padding: 0; margin: 0; }
 .topic-chips legend { font-size: 0; height: 0; padding: 0; }
 .topic-chips-list { display: flex; flex-wrap: wrap; gap: 4px; }
-.chip {
-  font-size: var(--fs-xs); padding: 4px 10px;
-  border: 1px solid var(--br-strong); border-radius: var(--r);
-  color: var(--tx-2); cursor: pointer; user-select: none;
-  transition: all 0.15s;
-  display: inline-flex; align-items: center;
-}
-.chip:hover { color: var(--tx); border-color: var(--br-glow); }
-.chip input { display: none; }
-.chip.chip-selected {
-  color: var(--warn); border-color: var(--warn-dim); background: var(--warn-bg);
-}
-.chip.chip-selected::before { content: "× "; opacity: 0.7; }
-.chip:not(.chip-selected)::before { content: "+ "; color: var(--tx-mute); }
+/* .chip / .chip-selected definition lives further down (search "chip pill")
+   — keeping a single source of truth avoids the L283/L1834 split that
+   used to leave stale ::before prefixes from a removed older design. */
 
 /* Schema panel */
 .schema-panel h3 { font-size: 0; height: 0; padding: 0; margin: 0; }
@@ -353,10 +333,14 @@ label > span:first-child::before { content: "▸ "; color: var(--accent-dim); }
 .schema-fk li::before { content: "↗ "; color: var(--magenta); }
 
 /* ──────────────────────────────────────────────────
-   Editor
+   Editor — legacy textarea path (kept for non-highlighted use cases).
+   The active editor is the highlighted mirror (.sql-editor-wrap) defined
+   below; rules here intentionally narrow their selector with
+   `:not(.sql-editor-textarea)` so they never override the mirror.
    ────────────────────────────────────────────────── */
 .editor-view { padding: 0; }
-textarea.sql-editor, textarea[data-sql-editor], textarea[data-field="userSql"] {
+textarea.sql-editor:not(.sql-editor-textarea),
+textarea[data-sql-editor]:not(.sql-editor-textarea) {
   font-family: var(--mono);
   font-size: var(--fs-md);
   line-height: 1.7;
@@ -370,7 +354,7 @@ textarea.sql-editor, textarea[data-sql-editor], textarea[data-field="userSql"] {
   resize: vertical;
   tab-size: 2;
 }
-textarea.sql-editor:focus, textarea[data-field="userSql"]:focus {
+textarea.sql-editor:not(.sql-editor-textarea):focus {
   background: #0a0a0a;
   border-color: var(--accent-dim);
 }
@@ -479,6 +463,177 @@ table.result-table, table[data-result-table] {
 .result-table tr:last-child td { border-bottom: 0; }
 .result-table tr:hover td { background: var(--bg-input); }
 
+/* Compact result verdict bar */
+.result-empty {
+  color: var(--tx-3);
+  font-size: var(--fs-sm);
+  font-style: italic;
+  padding: 12px;
+  text-align: center;
+}
+.result-verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--r);
+  font-size: var(--fs-sm);
+}
+.result-verdict-ok {
+  background: var(--pass-bg);
+  border: 1px solid var(--pass);
+  color: var(--pass);
+}
+.result-verdict-fail {
+  background: var(--fail-bg);
+  border: 1px solid var(--fail);
+  color: var(--fail);
+}
+.result-verdict-icon {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1;
+}
+.result-verdict-label {
+  font-weight: 600;
+}
+.result-verdict-detail {
+  font-size: var(--fs-xs);
+  opacity: 0.85;
+}
+.result-show-btn {
+  margin-top: 8px;
+  font-size: var(--fs-xs);
+  padding: 4px 14px;
+  background: transparent;
+  border: 1px solid var(--br-strong);
+  color: var(--tx-2);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+.result-show-btn:hover {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+
+/* Result modal */
+.result-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  /* The dialog host (.app-dialog) has pointer-events:none so the empty
+     overlay never eats clicks under it. Each modal MUST re-enable
+     pointer-events on its own backdrop, otherwise the dismiss-on-outside
+     click and any inner buttons stop working. (See quota-dialog for the
+     same pattern.) */
+  pointer-events: auto;
+}
+.result-modal-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  width: 720px;
+  max-width: 92vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+}
+.result-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--br);
+  flex-shrink: 0;
+}
+.result-modal-header h3 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  color: var(--tx);
+}
+.result-modal-content {
+  overflow: auto;
+  padding: 12px;
+  flex: 1;
+  min-height: 0;
+}
+.result-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--br);
+  flex-shrink: 0;
+}
+.result-modal-truncation {
+  padding: 6px 12px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn-dim);
+  border-radius: var(--r);
+  font-size: var(--fs-xs);
+  margin-bottom: 8px;
+}
+
+/* Comparison layout */
+.result-modal-verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--r);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.result-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 700px) {
+  .result-comparison { grid-template-columns: 1fr; }
+}
+.result-compare-section {
+  min-width: 0;
+  overflow: auto;
+}
+.result-compare-title {
+  margin: 0 0 6px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 3px;
+}
+.result-compare-user {
+  color: var(--info);
+  background: rgba(137, 180, 250, 0.08);
+}
+.result-compare-expected {
+  color: var(--pass);
+  background: rgba(80, 250, 123, 0.08);
+}
+.result-compare-empty {
+  color: var(--tx-3);
+  font-style: italic;
+  font-size: var(--fs-sm);
+  padding: 8px;
+}
+.result-modal-error {
+  color: var(--fail);
+  padding: 12px;
+  background: var(--fail-bg);
+  border: 1px solid var(--fail);
+  border-radius: var(--r);
+  font-size: var(--fs-sm);
+}
+
 /* ──────────────────────────────────────────────────
    Tutor — sticky right column
    ────────────────────────────────────────────────── */
@@ -494,18 +649,15 @@ table.result-table, table[data-result-table] {
   content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px;
   background: linear-gradient(90deg, transparent, var(--br-glow), transparent);
 }
-.tutor-view h3 {
-  margin: 0 0 var(--gap-sm);
-  font-size: var(--fs-xs); color: var(--tx-3);
-  text-transform: lowercase; letter-spacing: 0.04em;
-  font-weight: 500;
-}
-.tutor-view h3::before { content: "▸ "; color: var(--accent-dim); }
+/* (Legacy .tutor-view h3 styling removed — the tutor view now uses
+   .tutor-header with .tutor-role-chip + .tutor-new-btn instead.) */
 
 .tutor-thread {
   display: flex; flex-direction: column; gap: 14px;
   flex: 1; min-height: 0;
   overflow-y: auto;
+  list-style: none;
+  margin: 0;
   padding: 4px 0;
 }
 .tutor-msg {
@@ -515,7 +667,7 @@ table.result-table, table[data-result-table] {
 .tutor-msg::before {
   width: 28px; height: 28px;
   display: grid; place-items: center;
-  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  font-family: var(--mono); font-size: var(--fs-xs); font-weight: 700;
   border: 1px solid currentColor; border-radius: var(--r);
 }
 .tutor-msg[data-role="assistant"] { color: var(--accent); }
@@ -558,7 +710,7 @@ table.result-table, table[data-result-table] {
   padding: 8px 12px;
   font-family: var(--mono); font-size: var(--fs-base);
   border-radius: var(--r);
-  resize: vertical; min-height: 60px;
+  resize: vertical; min-height: 48px; max-height: 200px;
 }
 .tutor-composer:focus { border-color: var(--accent-dim); outline: none; }
 .tutor-refsql {
@@ -677,35 +829,360 @@ table.result-table, table[data-result-table] {
 }
 
 /* ──────────────────────────────────────────────────
-   Report view
+   Report view (R16) — multi-section ability report.
+   Built around three visual primitives:
+     • SVG bar rows (.bar-row)
+     • Stat cards (.stat-card) for the overview hero
+     • AI score cards (.score-card) for the multi-dimensional grid
+   The whole .report-body is the snapshot target for PDF export, so
+   keep it self-contained (no dependency on parent CSS).
    ────────────────────────────────────────────────── */
-.report-view h2 {
-  font-size: var(--fs-lg); font-weight: 600;
-  color: var(--accent); margin: 0 0 var(--gap-md);
+
+.report-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
 }
-.report-view h2::before { content: "❯ "; color: var(--accent-dim); }
+.report-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  flex-wrap: wrap;
+}
+.report-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--accent);
+}
+.report-title::before { content: "❯ "; color: var(--accent-dim); }
+.report-actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+
 .report-empty {
   padding: 32px; text-align: center;
   color: var(--tx-3); font-size: var(--fs-sm);
   background: var(--bg-panel); border: 1px dashed var(--br);
-  border-radius: var(--r); margin-top: var(--gap-md);
+  border-radius: var(--r);
 }
+.report-empty-mini {
+  color: var(--tx-3); font-size: var(--fs-sm); margin: 8px 0; font-style: italic;
+}
+
+/* ── Body container — the PDF snapshot target. ── */
 .report-body {
-  margin-top: var(--gap-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
   padding: var(--gap-md);
   background: var(--bg-panel); border: 1px solid var(--br);
   border-radius: var(--r);
-  font-family: var(--mono); font-size: var(--fs-sm);
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
   color: var(--tx);
-  white-space: pre-wrap;
   line-height: 1.7;
+}
+
+/* ── Section frames ── */
+.report-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  background: var(--bg-input);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+}
+.report-section-title {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+  display: flex; align-items: center; gap: 8px;
+}
+.report-section-title::before { content: "◆"; color: var(--accent-dim); font-size: var(--fs-xs); }
+.report-section-tag {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  padding: 1px 7px;
+  background: var(--magenta);
+  color: var(--bg);
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+}
+.report-section-reco { border-left: 3px solid var(--magenta); }
+.report-section-noai { border-left: 3px solid var(--warn-dim); }
+
+/* ── Overview hero cards ── */
+.report-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+.stat-card {
+  display: flex; flex-direction: column;
+  padding: 10px 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+}
+.stat-label {
+  font-size: var(--fs-xs);
+  color: var(--tx-3);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+}
+.stat-big-row {
+  display: flex; align-items: baseline; gap: 4px;
+  margin-top: 4px;
+}
+.stat-big {
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--mono);
+  letter-spacing: -0.01em;
+}
+.stat-unit {
+  font-size: var(--fs-xs);
+  color: var(--tx-3);
+}
+.report-summary {
+  margin: 0;
+  padding: 10px 14px;
+  background: var(--bg-panel);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  color: var(--tx-2);
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+  font-style: italic;
+}
+
+/* ── Bar rows (difficulty / topic mastery) ── */
+.report-bar-list {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.2fr) minmax(0, 3fr) minmax(110px, auto);
+  align-items: center;
+  gap: 12px;
+}
+.bar-label {
+  display: flex; flex-direction: column; min-width: 0;
+}
+.bar-label-text {
+  font-size: var(--fs-sm);
+  color: var(--tx);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bar-label-meta {
+  font-size: var(--fs-xxs);
+  color: var(--tx-3);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+}
+.bar-svg {
+  width: 100%;
+  height: 14px;
+  display: block;
+  overflow: visible;
+}
+.bar-track { fill: var(--bg); }
+.bar-fill-pass { fill: var(--pass); }
+.bar-fill-warn { fill: var(--warn); }
+.bar-fill-fail { fill: var(--fail); }
+.bar-fill-mute { fill: var(--tx-mute); }
+.bar-ratio {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.bar-ratio-pass { color: var(--pass); }
+.bar-ratio-warn { color: var(--warn); }
+.bar-ratio-fail { color: var(--fail); }
+.bar-ratio-mute { color: var(--tx-3); }
+
+.rate-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border-radius: 999px;
+  margin-left: 6px;
+}
+.rate-badge-pass { color: var(--pass); border: 1px solid var(--pass); background: var(--pass-bg); }
+.rate-badge-warn { color: var(--warn); border: 1px solid var(--warn-dim); background: var(--warn-bg); }
+.rate-badge-fail { color: var(--fail); border: 1px solid var(--fail); background: var(--fail-bg); }
+
+/* ── AI multi-dimensional score cards ── */
+.report-score-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+.score-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--br);
+  border-left-width: 3px;
+  border-radius: var(--r);
+}
+.score-card-pass { border-left-color: var(--pass); }
+.score-card-warn { border-left-color: var(--warn); }
+.score-card-fail { border-left-color: var(--fail); }
+.score-card-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+}
+.score-card-name {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--tx);
+}
+.score-card-num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-md);
+  color: var(--accent);
+}
+.score-card-num strong { font-size: var(--fs-lg); }
+.score-card-max { color: var(--tx-3); font-size: var(--fs-xs); }
+.score-card-bar-track {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-input);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.score-card-bar { height: 100%; transition: width 280ms ease; }
+.score-card-bar-pass { background: var(--pass); }
+.score-card-bar-warn { background: var(--warn); }
+.score-card-bar-fail { background: var(--fail); }
+.score-card-comment {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--tx-2);
+  line-height: 1.5;
+}
+
+/* ── Weak topics list ── */
+.weak-topic-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.weak-topic-item {
+  padding: 10px 12px;
+  background: var(--bg-panel);
+  border: 1px solid var(--br);
+  border-left: 3px solid var(--fail);
+  border-radius: var(--r);
+}
+.weak-topic-head {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 4px;
+}
+.weak-topic-rank {
+  font-family: var(--mono);
+  font-weight: 700;
+  color: var(--fail);
+  font-size: var(--fs-sm);
+}
+.weak-topic-name { font-weight: 600; flex: 1; }
+.weak-topic-rate {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-sm);
+  color: var(--fail);
+  font-weight: 600;
+}
+.weak-topic-advice {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--tx-2);
+  line-height: 1.6;
+  padding-left: 4px;
+}
+
+.report-recommendation {
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--magenta);
+  border-radius: var(--r);
+  color: var(--tx);
+  font-size: var(--fs-sm);
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+.report-raw-md {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: var(--bg-panel);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  color: var(--tx-2);
+  white-space: pre-wrap;
+  max-height: 320px;
+  overflow: auto;
+}
+
+/* ── Print / PDF stylesheet ── */
+@media print {
+  /* Hide app chrome — we only want the report. */
+  body { background: white; color: #111; }
+  #app > header, .app-nav, .app-dialog, .app-toast,
+  .report-toolbar, .storage-fallback-banner { display: none !important; }
+  main.app-route { padding: 0; max-width: 100%; }
+  .report-view { gap: 8px; }
+  .report-body {
+    background: white;
+    border: 0;
+    color: #111;
+    padding: 0;
+  }
+  .report-section {
+    background: #f7f8f6;
+    border-color: #d8dad4;
+    page-break-inside: avoid;
+    color: #111;
+  }
+  .report-section-title { color: #2a6e3a; }
+  .stat-card, .score-card, .weak-topic-item, .report-recommendation,
+  .report-summary, .report-raw-md {
+    background: white;
+    border-color: #d8dad4;
+    color: #111;
+  }
+  .stat-big, .score-card-num { color: #2a6e3a; }
+  .bar-track { fill: #e7e8e3; }
+  .bar-label-text, .stat-label, .bar-label-meta, .stat-unit,
+  .score-card-comment, .weak-topic-advice { color: #333; }
+  .bar-ratio-pass, .rate-badge-pass, .score-card-bar-pass { color: #1f7a35; }
+  .bar-ratio-warn, .rate-badge-warn, .score-card-bar-warn { color: #8a6a00; }
+  .bar-ratio-fail, .rate-badge-fail, .score-card-bar-fail,
+  .weak-topic-rank, .weak-topic-rate { color: #b3304a; }
 }
 
 /* ──────────────────────────────────────────────────
    Quota dialog (R15.6 / Property 12)
    Selectors data-quota-dialog / data-quota-export are protected by tests.
    ────────────────────────────────────────────────── */
-.app-dialog { position: fixed; inset: 0; pointer-events: none; z-index: 999; }
+.app-dialog { position: fixed; inset: 0; pointer-events: none; z-index: 1500; }
 .quota-dialog {
   position: fixed; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
@@ -753,4 +1230,1764 @@ table.result-table, table[data-result-table] {
   border-bottom: 1px solid var(--warn-dim);
   font-size: var(--fs-xs) !important;
   text-align: center;
+}
+
+/* ──────────────────────────────────────────────────
+   Progress dialog (agent step-by-step status)
+   Surfaces SchemaGen / QuestionGen retry attempts so users see exactly
+   which validation step failed instead of a generic "格式异常" toast.
+   ────────────────────────────────────────────────── */
+.progress-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  pointer-events: auto;
+}
+.progress-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--r);
+  padding: 20px 24px;
+  width: 540px;
+  max-width: 92vw;
+  max-height: 80vh;
+  overflow: auto;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+}
+.progress-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--accent-dim);
+}
+.progress-title {
+  font-size: var(--fs-lg);
+  color: var(--accent);
+  font-weight: 600;
+}
+.progress-steps {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.progress-step {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid var(--accent-dim);
+  border-radius: 6px;
+  background: var(--bg-input);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.progress-glyph {
+  font-family: var(--mono);
+  font-size: var(--fs-base);
+  width: 1em; flex-shrink: 0;
+  text-align: center;
+}
+.progress-step-body { flex: 1; min-width: 0; }
+.progress-step-label {
+  font-size: var(--fs-base);
+  color: var(--tx);
+}
+.progress-step-detail {
+  font-size: var(--fs-xs);
+  color: var(--tx-3);
+  margin-top: 4px;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.progress-step-pending .progress-glyph { color: var(--tx-3); }
+.progress-step-running { border-color: var(--accent); }
+.progress-step-running .progress-glyph {
+  color: var(--accent);
+  animation: progress-pulse 1.4s ease-in-out infinite;
+}
+.progress-step-ok      { border-color: var(--ok, #5dc36d); }
+.progress-step-ok .progress-glyph { color: var(--ok, #5dc36d); }
+.progress-step-fail    { border-color: var(--fail, #e25a5a); }
+.progress-step-fail .progress-glyph { color: var(--fail, #e25a5a); }
+.progress-step-fail .progress-step-detail { color: var(--fail, #e25a5a); }
+
+@keyframes progress-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+.progress-final {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: var(--fs-sm);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.progress-final-done {
+  background: rgba(93, 195, 109, 0.12);
+  color: var(--ok, #5dc36d);
+  border: 1px solid var(--ok, #5dc36d);
+}
+.progress-final-error {
+  background: rgba(226, 90, 90, 0.12);
+  color: var(--fail, #e25a5a);
+  border: 1px solid var(--fail, #e25a5a);
+}
+
+/* Recovery action buttons rendered under .progress-final on error.
+   Right-aligned, wrap on narrow viewports, sit inside the dialog card. */
+.progress-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.progress-actions .btn {
+  white-space: nowrap;
+}
+
+
+/* ──────────────────────────────────────────────────
+   Practice — three-column full-viewport layout
+   The page fills `100vh - <header>` and uses a CSS grid with two
+   draggable splitter columns. Inside each column, the panels form a
+   flex chain so the editor / result / tutor bodies inherit the full
+   available height (no scroll-island).
+   ────────────────────────────────────────────────── */
+:root {
+  /* Header is sticky at the top of #app. Keep this in sync with the actual
+     padded nav height so fixed-height practice views do not spill vertically. */
+  --app-header-h: 64px;
+  /* Default column widths — practice-view writes these inline as well,
+     overriding the defaults below if a saved layout is present. */
+  --col-side: 300px;
+  --col-tutor: 380px;
+  /* Default in-column row heights (top row); the bottom row of each
+     column is `1fr` so it fills whatever's left. practice-view rewrites
+     these inline from the persisted layout when present. The editor
+     row gets a generous default so the SQL textarea has room to breathe;
+     users can still drag the splitter to override. */
+  --row-question: 220px;
+  --row-editor: 520px;
+}
+
+main.app-route:has(> .practice-view) {
+  /* Practice owns its vertical gutters and fills the viewport. */
+  max-width: 1900px;
+  padding: 0;
+}
+
+.practice-view {
+  display: grid;
+  grid-template-columns:
+    var(--col-side, 300px)
+    8px
+    minmax(0, 1fr)
+    8px
+    var(--col-tutor, 380px);
+  gap: 0;
+  align-items: stretch;
+  height: calc(100vh - var(--app-header-h));
+  min-height: 480px;
+  padding: var(--gap-sm) 0;
+}
+
+/* Each column lays out its panels. Side + main use grid so a horizontal
+   splitter can drag the top row's height; tutor stays a flex column
+   because it only contains a single panel. */
+.practice-side {
+  display: grid;
+  grid-template-rows: var(--row-question, 240px) 8px minmax(0, 1fr);
+  gap: 0;
+  min-height: 0;
+  min-width: 0;
+  padding: 0 4px;
+}
+.practice-main {
+  display: grid;
+  grid-template-rows: var(--row-editor, 360px) 8px minmax(0, 1fr);
+  gap: 0;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+}
+.practice-tutor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  min-width: 0;
+  padding: 0 4px;
+}
+.practice-side  { padding-left: var(--gap-sm); padding-right: 0; }
+.practice-tutor { padding-left: 0; padding-right: var(--gap-sm); }
+
+/* Grid children: each panel must clamp to its assigned row so the
+   splitter delta is honoured (without min-height:0 a tall body would
+   force its row to grow regardless of the row track size). */
+.practice-side  > .pf,
+.practice-main  > .pf { min-height: 0; overflow: hidden; }
+
+/* Tutor column fills its column. */
+.practice-tutor > .pf { flex: 1 1 0; min-height: 0; }
+
+/* Re-enable scrolling inside fully-stretched panel bodies, and remove
+   the per-panel native resize handle — the column splitters cover the
+   resize need now. */
+.practice-side .pf-body,
+.practice-main .pf-body,
+.practice-tutor .pf-body {
+  resize: none;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+
+/* Splitter — vertical bar between columns. */
+.splitter {
+  user-select: none;
+  background: transparent;
+  position: relative;
+  flex-shrink: 0;
+}
+.splitter-v {
+  width: 8px;
+  cursor: col-resize;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.splitter-v::before {
+  content: "";
+  width: 2px;
+  height: 40px;
+  background: var(--br-strong);
+  border-radius: 1px;
+  transition: background 120ms ease, height 120ms ease;
+}
+.splitter-v:hover::before,
+.splitter-v.splitter-dragging::before {
+  background: var(--accent);
+  height: 60px;
+}
+
+/* Horizontal splitter — sits between two stacked panels in a column. */
+.splitter-h {
+  height: 8px;
+  cursor: row-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+.splitter-h::before {
+  content: "";
+  height: 2px;
+  width: 40px;
+  background: var(--br-strong);
+  border-radius: 1px;
+  transition: background 120ms ease, width 120ms ease;
+}
+.splitter-h:hover::before,
+.splitter-h.splitter-dragging::before {
+  background: var(--accent);
+  width: 60px;
+}
+
+@media (max-width: 1024px) {
+  .practice-view {
+    grid-template-columns: 1fr;
+    height: auto;
+    gap: var(--gap-sm);
+    padding: var(--gap-sm);
+  }
+  .practice-side, .practice-main, .practice-tutor {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+    grid-template-rows: none;
+  }
+  .splitter-v, .splitter-h { display: none; }
+  .practice-side  > .pf:first-child { flex: 0 0 auto; min-height: 200px; }
+  .practice-side  > .pf:last-child  { flex: 0 0 auto; min-height: 280px; }
+  .practice-main > .pf:first-child  { flex: 0 0 auto; min-height: 360px; }
+  .practice-main > .pf:last-child   { flex: 0 0 auto; min-height: 200px; }
+  .practice-tutor > .pf             { flex: 0 0 auto; min-height: 360px; }
+}
+
+/* Editor: make the wrap fill the panel body so the textarea grows. */
+.practice-main .editor-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.practice-main .editor-view > .sql-editor-host {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.practice-main .editor-view > .sql-editor-host > .sql-editor-wrap {
+  flex: 1;
+  min-height: 0;
+  resize: none;
+}
+.practice-main .editor-actions { flex: 0 0 auto; }
+
+/* Result panel content fills its body, but result-table / verdict are
+   intrinsically sized — push them to the top and let the body scroll. */
+.practice-main .result-mount,
+.practice-main [data-result-mount] {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Tutor: full-height chat with composer pinned at the bottom. */
+.practice-tutor .tutor-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  position: static;     /* override the legacy sticky rule */
+  max-height: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.practice-tutor .tutor-thread {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.practice-tutor .tutor-composer-row { flex: 0 0 auto; }
+.practice-tutor .tutor-ref-card     { flex: 0 0 auto; }
+
+/* Tutor header — new conversation button + AI 助手 role chip */
+.tutor-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 6px;
+}
+.tutor-role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  border: 1px solid var(--accent-dim);
+  border-radius: 999px;
+  background: var(--accent-bg);
+  user-select: none;
+}
+.tutor-role-chip::before {
+  content: "◉";
+  color: var(--accent);
+  font-size: 8px;
+  animation: tutor-pulse 2.4s ease-in-out infinite;
+}
+@keyframes tutor-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.tutor-header .tutor-new-btn {
+  margin-left: auto;
+}
+.tutor-new-btn {
+  font-size: var(--fs-xs);
+  padding: 3px 10px;
+  background: transparent;
+  border: 1px solid var(--br-strong);
+  color: var(--tx-2);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+.tutor-new-btn:hover {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+
+/* ─── Tutor (在线问答) keeps the mint accent but earns a clear role
+   identity through chrome shape (role chip + softer bubbles) rather
+   than a left-edge accent stripe. ─── */
+.practice-tutor > .pf > .pf-header {
+  background: linear-gradient(90deg, var(--accent-bg) 0%, var(--bg-panel-2) 60%);
+}
+.practice-tutor .tutor-msg[data-role="assistant"] .tutor-content {
+  border-radius: 10px;
+  padding: 12px 16px;
+  line-height: 1.7;
+}
+
+/* Quick action chips */
+.tutor-chips {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 0;
+}
+.tutor-chip {
+  font-size: var(--fs-xs);
+  padding: 4px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--br-strong);
+  color: var(--tx-2);
+  border-radius: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 120ms ease;
+  font-family: inherit;
+}
+.tutor-chip:hover {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+.tutor-chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Empty state */
+.tutor-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--tx-3);
+  gap: 6px;
+}
+.tutor-empty-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--br-strong);
+  border-radius: 50%;
+  font-size: var(--fs-lg);
+  color: var(--accent-dim);
+  margin-bottom: 8px;
+}
+.tutor-empty-state p {
+  margin: 0;
+  font-size: var(--fs-sm);
+}
+.tutor-empty-state .meta {
+  font-size: var(--fs-xs);
+}
+
+/* Ref-answer card — sits between thread and composer. */
+.tutor-ref-card {
+  margin-top: 6px;
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--r);
+  background: var(--bg-input);
+  overflow: hidden;
+}
+.tutor-ref-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  border-bottom: 1px solid var(--accent-dim);
+}
+.tutor-ref-card .tutor-refsql {
+  margin: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-left: 0;
+  background: transparent;
+  font-size: var(--fs-sm);
+  max-height: 240px;
+  overflow: auto;
+}
+.tutor-ref-card .tutor-refsql code { font: inherit; background: transparent; }
+
+/* Header extra slot — the Tutor panel uses it for the ref-answer button. */
+.pf-header-extra {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.pf-header-extra .pf-action,
+.pf-header-extra .pf-action-ref {
+  padding: 4px 14px;
+  height: auto;
+  min-width: 88px;
+  font-size: var(--fs-xs);
+  font-family: inherit;
+  background: transparent;
+  border: 1px solid var(--accent-dim);
+  color: var(--accent);
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 120ms ease;
+}
+.pf-header-extra .pf-action:hover,
+.pf-header-extra .pf-action-ref:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+}
+.pf-header-extra .pf-action:disabled,
+.pf-header-extra .pf-action-ref:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: var(--br);
+  color: var(--tx-3);
+}
+
+/* Make sure the panel header lays out title/meta/extra/actions on one row
+   with the meta truncating instead of pushing the buttons out. */
+.pf-header { flex-wrap: nowrap; }
+.pf-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+
+/* Sub-controls in the Setup panel */
+.field-row { display: flex; flex-direction: column; gap: 6px; }
+.field-label {
+  font-size: var(--fs-xs);
+  color: var(--tx-3);
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  display: flex; align-items: center; gap: 8px;
+}
+.compact-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.theme-option {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  cursor: pointer;
+  background: var(--bg-input);
+  font-size: var(--fs-sm);
+  transition: all 120ms ease;
+}
+.theme-option:hover { border-color: var(--br-strong); }
+.theme-option-selected {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.theme-option input { accent-color: var(--accent); margin: 0; }
+.theme-custom { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.theme-custom textarea {
+  background: var(--bg-input);
+  color: var(--tx);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  padding: 8px;
+  font: inherit;
+  resize: vertical;
+}
+.diff-btn {
+  display: flex; flex-direction: column; align-items: flex-start;
+  padding: 4px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  color: var(--tx-2);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 120ms ease;
+}
+.diff-btn:hover { border-color: var(--br-strong); color: var(--tx); }
+.diff-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.diff-level { font-weight: 700; font-size: var(--fs-sm); line-height: 1.2; }
+.diff-label { font-size: var(--fs-xxs); color: inherit; opacity: 0.85; line-height: 1.2; }
+.diff-hint {
+  font-size: var(--fs-xs);
+  color: var(--tx-3);
+  margin: 0;
+}
+.topic-chips-list {
+  display: flex; flex-wrap: wrap; gap: 3px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+/* chip pill — used by topic picker (.topic-chips-list) and any other
+   "tag-like" toggle. Single source of truth for the chip aesthetic. */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--br);
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  user-select: none;
+  transition: all 120ms ease;
+  line-height: 1.4;
+  color: var(--tx-2);
+}
+.chip:hover { border-color: var(--br-strong); color: var(--tx); }
+.chip-selected {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.chip input { display: none; }
+.meta { color: var(--tx-3); font-size: var(--fs-xs); }
+.meta-ok { color: var(--accent); }
+
+/* Compact field-row spacing inside the question-gen panel. */
+.practice-side .field-row { gap: 4px; }
+.practice-side .compact-row { gap: 4px; }
+
+/* Question prompt panel */
+.question-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--br);
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  color: var(--tx-2);
+}
+.badge-difficulty {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+.question-prompt {
+  background: var(--bg-input);
+  border: 1px solid var(--br);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  font-size: var(--fs-md);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  color: var(--tx);
+}
+.question-empty {
+  color: var(--tx-3);
+  font-style: italic;
+  padding: 14px;
+  text-align: center;
+}
+
+/* Reference answer inside question card */
+.question-ref-section {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--br);
+}
+.question-ref-btn {
+  font-size: var(--fs-xs);
+  padding: 4px 14px;
+  min-width: 88px;
+  width: auto;
+  text-align: center;
+  background: transparent;
+  border: 1px solid var(--accent-dim);
+  color: var(--accent);
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 120ms ease;
+}
+.question-ref-btn:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+}
+.question-ref-sql {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  color: var(--tx);
+}
+/* The <code> wrapper inherits the browser default (typically Courier),
+   which clashes with the JetBrains Mono used everywhere else. Force it
+   to inherit from <pre> so syntax-highlighted spans pick up var(--mono).
+   Same trick used by .sql-editor-mirror code and .history-sql code. */
+.question-ref-sql code {
+  font: inherit;
+  background: transparent;
+  padding: 0;
+  border: 0;
+  color: inherit;
+}
+
+/* Custom question prompt textarea */
+.qgen-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.qgen-custom-input {
+  width: 100%;
+  min-height: 44px;
+  max-height: 120px;
+  resize: vertical;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--br-strong);
+  border-radius: var(--r);
+  color: var(--tx);
+  font-size: var(--fs-base);
+  line-height: 1.5;
+}
+
+/* ─── 「出题」 console identity ───
+   The panel hosts a one-shot configuration action. (The previous
+   accent left-edge stripe was removed at user request — the mono meta
+   text in the header is enough to set it apart from the question
+   panel above it.) */
+.practice-side > [data-panel-role="qgen"] > .pf-header > .pf-meta {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  color: var(--tx-2);
+  letter-spacing: 0.02em;
+}
+.practice-side > [data-panel-role="qgen"].pf-collapsed > .pf-header > .pf-meta {
+  color: var(--accent);
+}
+
+/* Toolbar buttons inside the qgen panel header (collapsed state).
+   We deliberately use smaller padding + neutral colour so they read as
+   "controls", not as primary CTAs. */
+.qgen-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  font-size: var(--fs-xs);
+  font-family: var(--mono);
+  background: transparent;
+  border: 1px solid var(--br-strong);
+  color: var(--tx-2);
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 120ms ease;
+  min-width: 0;        /* override pf-header-extra .pf-action min-width */
+}
+.qgen-toolbar-btn:hover {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+.qgen-toolbar-btn[data-action="qgen-reroll"] {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+  background: var(--accent-bg);
+  font-weight: 600;
+}
+.qgen-toolbar-btn[data-action="qgen-reroll"]:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+.qgen-toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: var(--br);
+  color: var(--tx-3);
+  background: transparent;
+}
+/* Toolbar buttons override the generic pf-header-extra .pf-action rule
+   so they don't pick up the chunky 88px min-width. */
+.pf-header-extra .qgen-toolbar-btn {
+  min-width: 0;
+  padding: 3px 9px;
+  height: auto;
+}
+
+/* ──────────────────────────────────────────────────
+   Panel component (createPanel)
+   ────────────────────────────────────────────────── */
+.pf {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  overflow: hidden;
+  min-height: 0;
+}
+.pf-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-panel-2);
+  border-bottom: 1px solid var(--br);
+  user-select: none;
+}
+.pf-title {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+.pf-meta {
+  flex: 1;
+  font-size: var(--fs-xs);
+  color: var(--tx-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pf-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.pf-action {
+  width: 24px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--tx-2);
+  cursor: pointer;
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  padding: 0;
+  transition: all 120ms ease;
+}
+.pf-action:hover {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border-color: var(--accent-dim);
+}
+.pf-body {
+  padding: var(--gap-sm);
+  /* native vertical resize handle is provided by `resize: vertical` set
+     on the host inline; keep min-height generous so the handle is reachable. */
+  min-height: 80px;
+}
+.pf-collapsed > .pf-body { display: none; }
+.pf-collapsed > .pf-header { border-bottom: 0; }
+
+/* Hover-popover variant — when collapsed, the header looks like a tab. */
+.pf-pophover.pf-collapsed > .pf-header {
+  cursor: pointer;
+}
+.pf-popover {
+  background: var(--bg-panel);
+  border: 1px solid var(--br-strong);
+  border-radius: var(--r);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+  padding: var(--gap-sm);
+  max-height: 70vh;
+  overflow: auto;
+  z-index: 1300;
+}
+
+/* Fullscreen — pin to viewport, dim everything else. */
+.pf-fullscreen {
+  position: fixed !important;
+  inset: 16px;
+  z-index: 1400;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+  border: 1px solid var(--accent-dim);
+}
+.pf-fullscreen > .pf-body {
+  /* a fullscreen panel should fill its frame and ignore the original
+     resize handle. */
+  resize: none !important;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+.pf-fullscreen { display: flex; flex-direction: column; }
+body.pf-has-fullscreen::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1399;
+}
+
+/* ──────────────────────────────────────────────────
+   SQL syntax highlighting
+   Used by both the live editor mirror and static <pre>s in tutor / refSql.
+   ────────────────────────────────────────────────── */
+.sql-kw   { color: var(--magenta); font-weight: 600; }
+.sql-str  { color: var(--warn); }
+.sql-num  { color: var(--info); }
+.sql-com  { color: var(--tx-3); font-style: italic; }
+.sql-id   { color: var(--tx); }
+.sql-op   { color: var(--accent); }
+.sql-punc { color: var(--tx-2); }
+
+/* ──────────────────────────────────────────────────
+   Live highlighted SQL editor (gutter + mirror + textarea overlay).
+   Layout (left → right):
+     [gutter (line numbers)]  [stage: mirror + textarea]
+   The stage is a positioning context: mirror absolutely fills it, the
+   textarea also fills it with transparent text so the caret sits on
+   top of the highlighted mirror.
+   ────────────────────────────────────────────────── */
+.sql-editor-host { width: 100%; height: 100%; display: flex; }
+.sql-editor-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  background: var(--bg-input);
+  font-family: var(--mono);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  min-height: 200px;
+  overflow: hidden;
+}
+.sql-editor-wrap:focus-within { border-color: var(--accent); }
+
+/* CodeMirror 6 host — the `.cm-editor` is created inside `.sql-editor-wrap`
+   by createHighlightedEditor. Stretch it to fill so the editor scales
+   with whatever container the practice / dual / settings view drops it
+   into. Most colour decisions live inline via EditorView.theme() so we
+   only handle layout + a few stubbornly-internal CodeMirror styles
+   (focus outline, panels) here. */
+.sql-editor-wrap > .cm-editor {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+}
+.sql-editor-wrap > .cm-editor.cm-focused {
+  outline: none;
+}
+.sql-editor-wrap .cm-panels {
+  background: var(--bg-panel-2);
+  color: var(--tx);
+  border-color: var(--br);
+}
+.sql-editor-wrap .cm-panel input {
+  background: var(--bg-input);
+  color: var(--tx);
+  border: 1px solid var(--br-strong);
+  border-radius: var(--r);
+  padding: 4px 8px;
+}
+
+/* Gutter — line numbers, monospace, right-aligned. */
+.sql-editor-gutter {
+  flex: 0 0 auto;
+  width: 44px;
+  padding: 12px 8px 12px 0;
+  margin: 0;
+  background: var(--bg);
+  border-right: 1px solid var(--br);
+  color: var(--tx-3);
+  font: inherit;
+  line-height: inherit;
+  text-align: right;
+  user-select: none;
+  pointer-events: none;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+}
+.sql-editor-gutter-inner {
+  /* Slid up/down via transform when the user scrolls the textarea so
+     line numbers always line up with the corresponding source lines. */
+  position: absolute;
+  top: 12px;
+  right: 8px;
+  left: 0;
+  will-change: transform;
+}
+.sql-editor-gutter .sql-editor-ln {
+  display: block;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding-right: 0;
+}
+
+.sql-editor-stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.sql-editor-mirror {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 12px 14px;
+  border: 0;
+  font: inherit;
+  letter-spacing: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  tab-size: 2;
+  pointer-events: none;
+  color: var(--tx);
+  background: transparent;
+  overflow: auto;
+}
+.sql-editor-mirror code {
+  display: block;
+  font: inherit;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: inherit;
+}
+/* Textarea sits on top of the mirror inside the stage. */
+.sql-editor-stage > .sql-editor-textarea {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 12px 14px;
+  border: 0;
+  font: inherit;
+  letter-spacing: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  tab-size: 2;
+  background: transparent !important;
+  color: transparent !important;
+  caret-color: var(--accent) !important;
+  resize: none !important;
+  outline: none;
+  overflow: auto;
+}
+.sql-editor-stage > .sql-editor-textarea::placeholder {
+  color: var(--tx-3) !important;
+}
+.sql-editor-stage > .sql-editor-textarea::selection {
+  background: rgba(166, 227, 161, 0.25);
+  color: transparent !important;
+}
+
+.editor-actions {
+  display: flex; gap: 10px; padding: 10px 0 0;
+  flex-wrap: wrap;
+}
+
+.dual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap-sm);
+}
+@media (max-width: 800px) { .dual-grid { grid-template-columns: 1fr; } }
+.practice-main [data-editor-mount] > .dual-editor-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.practice-main .dual-editor-view > .dual-grid {
+  flex: 1;
+  min-height: 0;
+}
+.practice-main .dual-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.practice-main .dual-pane > .sql-editor-host {
+  flex: 1;
+  min-height: 0;
+}
+.practice-main .dual-pane > .sql-editor-host > .sql-editor-wrap {
+  flex: 1;
+  min-height: 0;
+}
+.dual-pane h4 {
+  margin: 0 0 6px;
+  color: var(--tx-2);
+  font-size: var(--fs-sm);
+  flex: 0 0 auto;
+}
+
+/* ──────────────────────────────────────────────────
+   Markdown rendering inside Tutor messages
+   ────────────────────────────────────────────────── */
+.markdown { color: var(--tx); }
+.markdown > *:first-child { margin-top: 0; }
+.markdown > *:last-child  { margin-bottom: 0; }
+.markdown .md-heading {
+  margin: 14px 0 6px;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: var(--fs-md);
+  line-height: 1.4;
+}
+.markdown h1.md-heading { font-size: var(--fs-lg); }
+.markdown h2.md-heading { font-size: var(--fs-md); }
+.markdown h3.md-heading,
+.markdown h4.md-heading,
+.markdown h5.md-heading,
+.markdown h6.md-heading { font-size: var(--fs-base); }
+.markdown .md-p   { margin: 6px 0; line-height: 1.7; }
+.markdown .md-list {
+  margin: 6px 0;
+  padding-left: 1.4em;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.markdown .md-list li::marker { color: var(--accent); }
+.markdown .md-quote {
+  margin: 8px 0;
+  padding: 6px 12px;
+  border-left: 3px solid var(--accent-dim);
+  color: var(--tx-2);
+  background: var(--accent-bg);
+}
+.markdown .md-inline-code {
+  background: var(--bg-input);
+  border: 1px solid var(--br);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: var(--fs-xs);
+  color: var(--warn);
+}
+.markdown .md-code {
+  background: var(--bg-input);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  margin: 8px 0;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.markdown .md-code code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--tx);
+  font: inherit;
+}
+.markdown a {
+  color: var(--info);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.markdown a:hover { color: var(--accent); }
+
+/* ──────────────────────────────────────────────────
+   Tutor view tweaks for Markdown + reference SQL
+   ────────────────────────────────────────────────── */
+.tutor-content { width: 100%; min-width: 0; }
+.tutor-content-user { white-space: pre-wrap; word-break: break-word; }
+.tutor-msg { list-style: none; }
+.tutor-refsql {
+  background: var(--bg-input);
+  border: 1px solid var(--br);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  margin: 8px 0;
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+.tutor-refsql code { font: inherit; background: transparent; }
+
+/* ──────────────────────────────────────────────────
+   Database manager (替换原"主题"面板)
+   ────────────────────────────────────────────────── */
+.db-saved-list {
+  display: flex; flex-direction: column; gap: 4px;
+  margin: 0; padding: 0; list-style: none;
+}
+.db-saved-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  background: var(--bg-input);
+  font-size: var(--fs-xs);
+  color: var(--tx);
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+.db-saved-item:hover { border-color: var(--br-strong); }
+.db-saved-item.db-saved-active {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.db-saved-meta {
+  font-size: var(--fs-xxs);
+  color: var(--tx-3);
+  white-space: nowrap;
+}
+.db-saved-actions { display: flex; gap: 4px; }
+.db-icon-btn {
+  width: 22px; height: 20px;
+  border: 1px solid var(--br);
+  background: transparent;
+  color: var(--tx-2);
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: var(--fs-xs);
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all 120ms ease;
+}
+.db-icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+.db-icon-btn.danger:hover { color: var(--fail); border-color: var(--fail); }
+.db-section-divider {
+  border: 0;
+  border-top: 1px dashed var(--br);
+  margin: 12px 0 8px;
+}
+.db-section-title {
+  font-size: var(--fs-xs);
+  color: var(--tx-3);
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 6px;
+}
+.db-import-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 4px;
+}
+.db-import-row input[type="file"] {
+  font-size: var(--fs-xs);
+  color: var(--tx-2);
+  flex: 1;
+  min-width: 0;
+}
+.db-info-popover {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--fs-xs);
+  color: var(--tx-2);
+}
+.db-info-popover h5 {
+  margin: 0;
+  color: var(--accent);
+  font-size: var(--fs-sm);
+}
+.db-info-tables {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+}
+.db-info-tables span:nth-child(odd) { color: var(--tx); }
+.db-info-tables span:nth-child(even) { color: var(--tx-3); text-align: right; }
+
+/* Practice panel bodies must pass the column height down to nested editor /
+   result / tutor views. Column splitters handle resizing in this layout. */
+.practice-side .pf-body,
+.practice-main .pf-body,
+.practice-tutor .pf-body {
+  resize: none;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+
+/* ──────────────────────────────────────────────────
+   Database tab — full-page two-column layout
+   ────────────────────────────────────────────────── */
+.db-route {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: var(--gap-md);
+  padding: var(--gap-md);
+  align-items: start;
+  min-height: calc(100vh - 60px);
+}
+@media (max-width: 800px) {
+  .db-route { grid-template-columns: 1fr; }
+}
+.db-route-side {
+  background: var(--bg-panel);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  padding: var(--gap-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: sticky;
+  top: 64px;
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+}
+.db-route-section-title {
+  margin: 0 0 4px;
+  font-size: var(--fs-xs);
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  color: var(--tx-3);
+  font-weight: 500;
+}
+.db-saved-list { gap: 4px; }
+.db-saved-item.db-saved-focus {
+  outline: 1px solid var(--accent-dim);
+}
+.db-saved-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.db-route-main {
+  background: var(--bg-panel);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  padding: var(--gap-md);
+  min-height: 280px;
+  min-width: 0;
+}
+.db-route-empty {
+  text-align: center;
+  padding: var(--gap-lg);
+  color: var(--tx-2);
+}
+.db-route-empty p { margin: 6px 0; }
+.db-route-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--gap-md);
+  border-bottom: 1px solid var(--br);
+  padding-bottom: var(--gap-sm);
+  margin-bottom: var(--gap-md);
+}
+.db-route-name {
+  margin: 0;
+  font-size: var(--fs-lg);
+  color: var(--accent);
+  font-weight: 600;
+}
+.db-route-active-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  font-size: var(--fs-xxs);
+  color: var(--accent);
+}
+.db-route-detail-actions {
+  display: flex; gap: 8px;
+}
+.db-route-tables {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  gap: var(--gap-md);
+  margin-bottom: var(--gap-md);
+}
+.db-route-table {
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  background: var(--bg-input);
+  padding: 12px;
+  min-width: 0;
+  overflow: auto;
+}
+.db-route-table-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.db-route-table-head h4 {
+  margin: 0;
+  color: var(--tx);
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+.db-route-ddl {
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  background: var(--bg-input);
+  margin-top: var(--gap-sm);
+}
+.db-route-ddl > summary {
+  cursor: pointer;
+  padding: 8px 12px;
+  color: var(--tx-2);
+  font-size: var(--fs-sm);
+  user-select: none;
+}
+.db-route-ddl > summary:hover { color: var(--accent); }
+.db-route-ddl > pre {
+  margin: 0;
+  padding: 12px;
+  border-top: 1px solid var(--br);
+  border-radius: 0 0 var(--r) var(--r);
+  border-left: 0;
+  overflow-x: auto;
+  overflow-wrap: anywhere;
+}
+
+/* Database page packs a lot of identifiers into narrow card grid cells.
+   Scope a one-step-down typography pass so long table/column names fit
+   without truncation while keeping the sidebar/heading hierarchy. */
+.db-route-name { font-size: var(--fs-md); }
+.db-route-table-head h4,
+.db-route-main .schema-table h4 { font-size: var(--fs-sm); }
+.db-route-main .schema-cols { font-size: var(--fs-xxs); }
+.db-route-main .schema-cols th,
+.db-route-main .schema-cols td { padding-left: 8px; padding-right: 8px; }
+.db-route-main .schema-pk,
+.db-route-main .schema-fk { font-size: var(--fs-xxs); }
+.db-route-main .db-route-ddl > summary { font-size: var(--fs-xs); }
+.db-route-main .db-route-ddl > pre { font-size: var(--fs-xs); }
+
+/* ──────────────────────────────────────────────────
+   History view (May 2026 v2)
+   ────────────────────────────────────────────────── */
+.history-stats { flex: 1; }
+.history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: var(--gap-md);
+  padding: 10px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+}
+.history-select {
+  padding: 4px 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--br-strong);
+  color: var(--tx);
+  border-radius: var(--r);
+  font: inherit;
+  font-size: var(--fs-xs);
+}
+.history-search {
+  flex: 1;
+  min-width: 200px;
+  padding: 4px 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--br-strong);
+  color: var(--tx);
+  border-radius: var(--r);
+  font: inherit;
+  font-size: var(--fs-xs);
+}
+.history-search:focus { outline: none; border-color: var(--accent); }
+
+.history-item {
+  display: flex; flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--br);
+  border-left: 3px solid var(--tx-mute);
+  border-radius: var(--r);
+  margin-bottom: 8px;
+  position: static;
+  transition: border-left-color 120ms ease;
+}
+.history-item::before { content: none; }
+/* Tri-state question status — drives the left-edge stripe colour and
+   the verdict pill. `data-question-status` is the new authoritative
+   attribute (correct/recovered/wrong/pending). The old
+   `data-history-correct` attribute is kept in the DOM for backward
+   compat but no longer drives styling. */
+.history-item[data-question-status="correct"]   { border-left-color: var(--pass); }
+.history-item[data-question-status="recovered"] { border-left-color: var(--warn); }
+.history-item[data-question-status="wrong"]     { border-left-color: var(--fail); }
+.history-item[data-question-status="pending"]   { border-left-color: var(--tx-mute); }
+.history-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.history-item-meta {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  align-items: center;
+}
+.history-item-right {
+  display: flex; gap: 10px; align-items: center;
+  font-size: var(--fs-xs);
+  flex-shrink: 0;
+}
+.history-item-db { color: var(--tx-3); }
+.history-verdict {
+  font-weight: 600;
+  font-size: var(--fs-xs);
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+.history-verdict-ok        { background: var(--pass-bg); color: var(--pass); }
+.history-verdict-fail      { background: var(--fail-bg); color: var(--fail); }
+/* New tri-state pills (correspond to data-question-status). */
+.history-verdict-correct   { background: var(--pass-bg); color: var(--pass); border: 1px solid var(--pass); }
+.history-verdict-recovered { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-dim); }
+.history-verdict-wrong     { background: var(--fail-bg); color: var(--fail); border: 1px solid var(--fail); }
+.history-verdict-pending   { background: transparent;    color: var(--tx-3); border: 1px solid var(--br-strong); }
+/* Per-question summary line (e.g. "共 3 次提交，错 2 次，对 1 次") */
+.history-item-attempts {
+  margin: 4px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--tx-3);
+}
+/* Per-attempt section inside the <details> pane — each one is bordered
+   green/red so the user can see which submission was right vs wrong. */
+.history-attempt {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--br);
+  border-left: 3px solid var(--tx-mute);
+  border-radius: var(--r);
+}
+.history-attempt-ok   { border-left-color: var(--pass); }
+.history-attempt-fail { border-left-color: var(--fail); }
+.history-attempt-ref  { border-left-color: var(--accent); }
+.history-attempt-head {
+  display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.history-attempt-idx {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  color: var(--tx-2);
+  font-weight: 600;
+}
+.history-attempt-verdict {
+  font-size: var(--fs-xxs);
+  font-weight: 600;
+  margin-left: auto;
+  letter-spacing: 0.04em;
+}
+.history-attempt-ok   .history-attempt-verdict { color: var(--pass); }
+.history-attempt-fail .history-attempt-verdict { color: var(--fail); }
+.history-item-prompt {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  font-size: var(--fs-sm);
+  color: var(--tx);
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+.history-item-details {
+  border-top: 1px dashed var(--br);
+  padding-top: 8px;
+}
+.history-item-details > summary {
+  cursor: pointer;
+  color: var(--tx-3);
+  font-size: var(--fs-xs);
+  user-select: none;
+}
+.history-item-details > summary:hover { color: var(--accent); }
+.history-item-sqls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+@media (max-width: 800px) {
+  .history-item-sqls { grid-template-columns: 1fr; }
+}
+.history-sql-block h5 {
+  margin: 0 0 4px;
+  font-size: var(--fs-xs);
+  color: var(--tx-3);
+  font-weight: 500;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+}
+.history-item-sqls .history-sql {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 260px;
+  overflow: auto;
+}
+.history-item-sqls .history-sql code { font: inherit; background: transparent; }
+.history-diff,
+.history-sandbox-error { margin-top: 6px; }
+.history-sandbox-error { color: var(--fail); }
+.history-item-actions { display: flex; justify-content: flex-end; }
+
+/* ──────────────────────────────────────────────────
+   History-questions modal (practice → 题目 panel header)
+   ────────────────────────────────────────────────── */
+.hq-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  /* See note on .result-modal-backdrop — the dialog host has
+     pointer-events:none so each modal must re-enable on its backdrop,
+     otherwise the close button and item clicks die silently. */
+  pointer-events: auto;
+}
+.hq-modal-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--r);
+  width: 640px;
+  max-width: 92vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+}
+.hq-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--br);
+}
+.hq-modal-header h3 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  color: var(--accent);
+}
+.hq-modal-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hq-modal-item {
+  padding: 10px 12px;
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  background: var(--bg-input);
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+.hq-modal-item:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+/* Tri-state left bar — visible at a glance which questions still need
+   work without having to scroll into the row. Mirrors the history-view
+   tri-state palette so the two surfaces feel consistent. */
+.hq-modal-item[data-question-status="correct"]   { border-left: 3px solid var(--pass); }
+.hq-modal-item[data-question-status="recovered"] { border-left: 3px solid var(--warn); }
+.hq-modal-item[data-question-status="wrong"]     { border-left: 3px solid var(--fail); }
+.hq-modal-item[data-question-status="pending"]   { border-left: 3px solid var(--tx-mute); }
+.hq-modal-status {
+  font-size: var(--fs-xxs);
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+}
+.hq-modal-status-correct   { color: var(--pass); border: 1px solid var(--pass);     background: var(--pass-bg); }
+.hq-modal-status-recovered { color: var(--warn); border: 1px solid var(--warn-dim); background: var(--warn-bg); }
+.hq-modal-status-wrong     { color: var(--fail); border: 1px solid var(--fail);     background: var(--fail-bg); }
+.hq-modal-status-pending   { color: var(--tx-3); border: 1px solid var(--br-strong); }
+.hq-modal-attempts { color: var(--tx-3); }
+.hq-modal-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.hq-modal-item-prompt {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--tx);
+  white-space: pre-wrap;
+  line-height: 1.5;
+  max-height: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ──────────────────────────────────────────────────
+   Editor + Tutor flex chain — make sure every wrapper passes height
+   down so the editor textarea and the tutor thread fill their panels.
+   ────────────────────────────────────────────────── */
+.practice-main .pf-body > [data-editor-mount],
+.practice-main [data-editor-mount] {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+.practice-main [data-editor-mount] > .editor-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.practice-main .editor-view > .sql-editor-host {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.practice-main .editor-view > .sql-editor-host > .sql-editor-wrap {
+  flex: 1;
+  min-height: 0;
+}
+
+.practice-tutor .pf-body > [data-tutor-mount],
+.practice-tutor [data-tutor-mount] {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+.practice-tutor [data-tutor-mount] > .tutor-view {
+  flex: 1;
+  min-height: 0;
 }

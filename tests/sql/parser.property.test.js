@@ -194,6 +194,11 @@ describe('SQL parser: example-based recognition', () => {
     expect(ast.kind).toBe('DELETE');
   });
 
+  it('classifies REPLACE', () => {
+    const ast = parse('REPLACE INTO t VALUES (1)');
+    expect(ast.kind).toBe('REPLACE');
+  });
+
   it('classifies DROP as DDL', () => {
     const ast = parse('DROP TABLE t');
     expect(ast.kind).toBe('DDL');

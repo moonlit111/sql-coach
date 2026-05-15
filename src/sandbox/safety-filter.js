@@ -3,13 +3,13 @@
 //   safetyFilter(s, allowDml) returns ok=false IFF
 //   (a) the token stream (with strings/comments stripped) contains
 //       DROP / ALTER / TRUNCATE / ATTACH / DETACH / PRAGMA, or
-//   (b) allowDml=false AND parse(s).kind ∈ {INSERT, UPDATE, DELETE}.
+//   (b) allowDml=false AND parse(s).kind ∈ {INSERT, UPDATE, DELETE, REPLACE}.
 
 import { tokenize, stripNoise } from '../sql/tokenizer.js';
 import { parse } from '../sql/parser.js';
 
 const FORBIDDEN = new Set(['DROP', 'ALTER', 'TRUNCATE', 'ATTACH', 'DETACH', 'PRAGMA']);
-const DML_KIND = new Set(['INSERT', 'UPDATE', 'DELETE']);
+const DML_KIND = new Set(['INSERT', 'UPDATE', 'DELETE', 'REPLACE']);
 
 /**
  * @param {string} sql
@@ -52,7 +52,7 @@ export function safetyFilter(sql, { allowDml = false } = {}) {
   if (!allowDml && DML_KIND.has(ast.kind)) {
     return {
       ok: false,
-      reason: '当前题目不允许数据修改 (INSERT/UPDATE/DELETE)',
+      reason: '当前题目不允许数据修改 (INSERT/UPDATE/DELETE/REPLACE)',
     };
   }
 

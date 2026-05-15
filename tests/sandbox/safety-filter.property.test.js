@@ -27,9 +27,10 @@ const forbiddenStatement = () =>
 
 // (c) DML statements
 const dmlStatement = () =>
-  fc.tuple(fc.constantFrom('INSERT', 'UPDATE', 'DELETE'), ident()).map(([kind, t]) => {
+  fc.tuple(fc.constantFrom('INSERT', 'UPDATE', 'DELETE', 'REPLACE'), ident()).map(([kind, t]) => {
     if (kind === 'INSERT') return `INSERT INTO ${t} VALUES (1)`;
     if (kind === 'UPDATE') return `UPDATE ${t} SET a = 1`;
+    if (kind === 'REPLACE') return `REPLACE INTO ${t} VALUES (1)`;
     return `DELETE FROM ${t}`;
   });
 
@@ -105,11 +106,15 @@ describe('safetyFilter — examples', () => {
   it('rejects DELETE under allowDml=false', () => {
     expect(safetyFilter('DELETE FROM t', { allowDml: false }).ok).toBe(false);
   });
+  it('rejects REPLACE under allowDml=false', () => {
+    expect(safetyFilter('REPLACE INTO t VALUES (1)', { allowDml: false }).ok).toBe(false);
+  });
 
-  it('accepts INSERT/UPDATE/DELETE under allowDml=true', () => {
+  it('accepts INSERT/UPDATE/DELETE/REPLACE under allowDml=true', () => {
     expect(safetyFilter('INSERT INTO t VALUES (1)', { allowDml: true }).ok).toBe(true);
     expect(safetyFilter('UPDATE t SET a = 1', { allowDml: true }).ok).toBe(true);
     expect(safetyFilter('DELETE FROM t', { allowDml: true }).ok).toBe(true);
+    expect(safetyFilter('REPLACE INTO t VALUES (1)', { allowDml: true }).ok).toBe(true);
   });
 
   it('does not block on parser failure but still scans tokens', () => {

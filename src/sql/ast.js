@@ -2,7 +2,7 @@
 // We do not build a full expression tree — only the structural flags listed in design.md.
 
 /**
- * @typedef {'SELECT'|'INSERT'|'UPDATE'|'DELETE'|'DDL'|'OTHER'} StmtKind
+ * @typedef {'SELECT'|'INSERT'|'UPDATE'|'DELETE'|'REPLACE'|'DDL'|'OTHER'} StmtKind
  */
 
 /**
@@ -14,6 +14,7 @@
  * @property {boolean} hasJoin
  * @property {boolean} hasSubquery
  * @property {boolean} hasExists
+ * @property {boolean} hasNotExists  True iff a NOT EXISTS pair appears anywhere.
  * @property {('UNION'|'INTERSECT'|'EXCEPT'|null)} hasSetOp
  * @property {Array} tokens
  */
@@ -31,6 +32,7 @@ export function emptyAst() {
     hasJoin: false,
     hasSubquery: false,
     hasExists: false,
+    hasNotExists: false,
     hasSetOp: null,
     tokens: [],
   };

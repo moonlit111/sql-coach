@@ -273,10 +273,10 @@ export const DIFFICULTY_LEVELS = Object.freeze(['L1', 'L2', 'L3', 'L4']);
  * Statement kinds recognised by the parser (R18.1) and consumed by the
  * safety filter (R11). 'OTHER' is the catch-all for anything the parser
  * cannot classify; the sandbox is still allowed to attempt execution (R18.5).
- * @type {readonly ('SELECT'|'INSERT'|'UPDATE'|'DELETE'|'DDL'|'OTHER')[]}
+ * @type {readonly ('SELECT'|'INSERT'|'UPDATE'|'DELETE'|'REPLACE'|'DDL'|'OTHER')[]}
  */
 export const STATEMENT_KINDS = Object.freeze([
-  'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'DDL', 'OTHER',
+  'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'REPLACE', 'DDL', 'OTHER',
 ]);
 
 // Marker export so `import './types.js'` has an observable side effect even

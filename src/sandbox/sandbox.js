@@ -21,12 +21,46 @@
 // @typedef {import('../types.js').ResultSet} ResultSet
 // @typedef {import('../types.js').SqlError} SqlError
 
-import initSqlJs from 'sql.js';
 import { safetyFilter } from './safety-filter.js';
 import { withTimeout } from './timeout.js';
 
 const DEFAULT_TIMEOUT_MS = 5000;
 const DEFAULT_ROW_LIMIT = 10000;
+
+/**
+ * Resolve the `initSqlJs` factory. We support two delivery channels:
+ *   1. In the browser, the UMD script tag in index.html attaches the
+ *      factory to `globalThis.initSqlJs`. This is the production path —
+ *      it sidesteps the ESM-CDN repackaging issues we ran into with both
+ *      esm.sh (Node shim leak) and jsdelivr `+esm` (no default export).
+ *   2. In the Node/jsdom test environment, no script tag has run, so we
+ *      dynamically import the npm package via the bare specifier `sql.js`
+ *      which Vitest resolves through node_modules. The module exposes the
+ *      factory under either `default` or as a CJS interop wrapper, hence
+ *      the fallback dance.
+ *
+ * @returns {Promise<(opts?: any) => Promise<any>>}
+ */
+async function loadSqlJsFactory() {
+  if (typeof globalThis !== 'undefined' && typeof globalThis.initSqlJs === 'function') {
+    return globalThis.initSqlJs;
+  }
+  // Node/test path. Wrapped in a try so the error message identifies the
+  // missing globals rather than just "module not found".
+  try {
+    const mod = await import('sql.js');
+    if (typeof mod === 'function') return mod;
+    if (typeof mod.default === 'function') return mod.default;
+    if (typeof mod.initSqlJs === 'function') return mod.initSqlJs;
+    throw new Error('sql.js loaded but no factory function found');
+  } catch (e) {
+    throw new Error(
+      'Failed to load sql.js. Browser: ensure the <script src="…/sql-wasm.js"> ' +
+      'tag is present in index.html. Node: ensure `sql.js` is in node_modules. ' +
+      `Original: ${e?.message ?? e}`,
+    );
+  }
+}
 
 export class Sandbox {
   /**
@@ -53,15 +87,16 @@ export class Sandbox {
   /** Initialise sql.js (in-process backend). Idempotent. */
   async init() {
     if (this.SQL) return;
-    // In the browser, the wasm file must be loaded from a known URL.
-    // We default to jsdelivr unless the caller provides a custom locator
+    // The wasm file must be loaded from a URL the browser can fetch. We
+    // default to jsdelivr's CDN unless the caller provides a custom locator
     // (e.g. tests resolving from node_modules).
     const defaultLocate = (file) =>
       `https://cdn.jsdelivr.net/npm/sql.js@1.11.0/dist/${file}`;
     const initOpts = this.locateFile
       ? { locateFile: this.locateFile }
       : (typeof window !== 'undefined' ? { locateFile: defaultLocate } : {});
-    this.SQL = await initSqlJs(initOpts);
+    const factory = await loadSqlJsFactory();
+    this.SQL = await factory(initOpts);
   }
 
   /**
