@@ -43,6 +43,48 @@ export function createSettingsView({ root, onSave, onClear } = {}) {
       },
       el('h2', {}, ZH.settings.title),
 
+      // Quick presets — speed up first-time setup
+      el(
+        'div',
+        {
+          class: 'settings-presets',
+          style: {
+            marginBottom: 'var(--gap-md)',
+            padding: '12px 14px',
+            background: 'var(--bg-input)',
+            border: '1px solid var(--br)',
+            borderRadius: 'var(--r)',
+            fontSize: 'var(--fs-sm)',
+            color: 'var(--tx-2)',
+          },
+        },
+        el('div', {
+          style: {
+            fontSize: 'var(--fs-xs)',
+            color: 'var(--tx-3)',
+            marginBottom: '6px',
+            textTransform: 'lowercase',
+            letterSpacing: '0.04em',
+          },
+        }, '▸ 常用预设（点击填入）'),
+        ...[
+          { label: 'DeepSeek (推荐)', url: 'https://api.deepseek.com', model: 'deepseek-v4-flash' },
+          { label: 'OpenAI', url: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+          { label: 'Ollama 本地', url: 'http://localhost:11434/v1', model: 'llama3' },
+        ].map((p) =>
+          el('button', {
+            type: 'button',
+            class: 'btn',
+            style: { marginRight: '6px', marginTop: '4px' },
+            onClick: () => {
+              local.apiBaseUrl = p.url;
+              local.modelName = p.model;
+              render();
+            },
+          }, p.label),
+        ),
+      ),
+
       // CORS notice — R3.2.
       el('p', { class: 'settings-cors-notice', 'data-cors-notice': '' }, ZH.settings.corsNotice),
 
@@ -55,6 +97,7 @@ export function createSettingsView({ root, onSave, onClear } = {}) {
           'data-field': 'apiBaseUrl',
           value: local.apiBaseUrl,
           required: true,
+          placeholder: 'https://api.deepseek.com',
           onInput: (ev) => { local.apiBaseUrl = ev.target.value; },
         }),
       ),
@@ -71,6 +114,7 @@ export function createSettingsView({ root, onSave, onClear } = {}) {
             'data-field': 'apiKey',
             value: local.apiKey,
             required: true,
+            placeholder: 'sk-...',
             onInput: (ev) => { local.apiKey = ev.target.value; },
           }),
           el(
@@ -78,7 +122,7 @@ export function createSettingsView({ root, onSave, onClear } = {}) {
             {
               type: 'button',
               'data-action': 'toggle-reveal',
-              class: 'btn btn-ghost',
+              class: 'btn',
               onClick: () => { local.revealed = !local.revealed; render(); },
             },
             local.revealed ? ZH.settings.hide : ZH.settings.show,
@@ -101,6 +145,7 @@ export function createSettingsView({ root, onSave, onClear } = {}) {
           'data-field': 'modelName',
           value: local.modelName,
           required: true,
+          placeholder: 'deepseek-v4-flash',
           onInput: (ev) => { local.modelName = ev.target.value; },
         }),
       ),

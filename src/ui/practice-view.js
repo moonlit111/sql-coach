@@ -45,21 +45,22 @@ export function createPracticeView({ root, onStartQuestion, onLoadSchema } = {})
   function render() {
     clear(root);
 
-    // Theme picker — R6.1
+    // Theme picker — R6.1 (compact 2-col grid)
     const themePicker = el('fieldset', { class: 'theme-picker' },
       el('legend', {}, ZH.practice.themePicker.title),
-      ...THEME_KEYS.map((k) =>
-        el('label', { class: 'theme-option' },
-          el('input', {
-            type: 'radio',
-            name: 'theme',
-            value: k,
-            'data-theme': k,
-            checked: local.theme === k ? true : undefined,
-            onChange: () => { local.theme = k; render(); },
-          }),
-          ' ',
-          ZH.practice.themePicker.options[k],
+      el('div', { class: 'theme-grid' },
+        ...THEME_KEYS.map((k) =>
+          el('label', { class: 'theme-option' },
+            el('input', {
+              type: 'radio',
+              name: 'theme',
+              value: k,
+              'data-theme': k,
+              checked: local.theme === k ? true : undefined,
+              onChange: () => { local.theme = k; render(); },
+            }),
+            ZH.practice.themePicker.options[k],
+          ),
         ),
       ),
       // R6.6 — custom theme description textarea.
@@ -78,53 +79,63 @@ export function createPracticeView({ root, onStartQuestion, onLoadSchema } = {})
         'button',
         {
           type: 'button',
-          class: 'btn',
+          class: 'btn btn-primary',
           'data-action': 'load-schema',
+          style: { width: '100%', marginTop: '8px' },
           onClick: () => onLoadSchema?.(
             local.theme,
             local.theme === 'custom' ? local.themeDescription : undefined,
           ),
         },
-        '生成数据集',
+        '▶ 生成数据集',
       ),
     );
 
-    // Difficulty picker — R8.1
+    // Difficulty picker — R8.1 (4-button row with active stripe)
     const difficultyPicker = el('fieldset', { class: 'difficulty-picker' },
       el('legend', {}, '难度'),
-      ...DIFFICULTY_LEVELS.map((lvl) =>
-        el(
-          'button',
-          {
-            type: 'button',
-            class: 'btn ' + (local.difficulty === lvl ? 'btn-primary' : ''),
-            'data-difficulty': lvl,
-            onClick: () => { local.difficulty = lvl; render(); },
-          },
-          `${lvl} ${ZH.practice.difficulty[lvl]}`,
+      el('div', { class: 'diff-row' },
+        ...DIFFICULTY_LEVELS.map((lvl) =>
+          el(
+            'button',
+            {
+              type: 'button',
+              class: 'diff-btn ' + (local.difficulty === lvl ? 'active' : ''),
+              'data-difficulty': lvl,
+              onClick: () => { local.difficulty = lvl; render(); },
+            },
+            lvl,
+          ),
         ),
       ),
+      el('div', {
+        style: {
+          marginTop: '10px', fontSize: 'var(--fs-xs)',
+          color: 'var(--tx-3)', lineHeight: '1.5'
+        },
+      }, ZH.practice.difficulty[local.difficulty]),
     );
 
-    // Topic chips — multi-select from TOPICS (R8.2 covered upstream).
+    // Topic chips — multi-select, terminal style
     const topicChips = el('fieldset', { class: 'topic-chips' },
-      el('legend', {}, '知识点（可多选）'),
-      ...TOPICS.map((t) =>
-        el(
-          'label',
-          {
-            class: 'chip ' + (local.topics.has(t.id) ? 'chip-selected' : ''),
-            'data-topic': t.id,
-          },
-          el('input', {
-            type: 'checkbox',
-            name: 'topic',
-            value: t.id,
-            checked: local.topics.has(t.id) ? true : undefined,
-            onChange: () => toggleTopic(t.id),
-          }),
-          ' ',
-          t.zh,
+      el('legend', {}, '知识点'),
+      el('div', { class: 'topic-chips-list' },
+        ...TOPICS.map((t) =>
+          el(
+            'label',
+            {
+              class: 'chip ' + (local.topics.has(t.id) ? 'chip-selected' : ''),
+              'data-topic': t.id,
+            },
+            el('input', {
+              type: 'checkbox',
+              name: 'topic',
+              value: t.id,
+              checked: local.topics.has(t.id) ? true : undefined,
+              onChange: () => toggleTopic(t.id),
+            }),
+            t.zh,
+          ),
         ),
       ),
     );
@@ -132,9 +143,15 @@ export function createPracticeView({ root, onStartQuestion, onLoadSchema } = {})
     // Schema display — R6.8
     const schemaPanel = el(
       'section',
-      { class: 'schema-panel', 'data-schema-panel': '' },
-      el('h3', {}, '当前数据集'),
-      ...renderSchema(local.schemaSummary),
+      { class: 'panel schema-panel', 'data-schema-panel': '' },
+      el('div', { class: 'panel-body' },
+        el('div', { class: 'ilabel' }, 'schema',
+          local.schemaSummary
+            ? el('span', { class: 'meta' }, `${local.schemaSummary.length} tables`)
+            : el('span', { class: 'meta' }, 'empty'),
+        ),
+        ...renderSchema(local.schemaSummary),
+      ),
     );
 
     const startBtn = el(
@@ -143,6 +160,7 @@ export function createPracticeView({ root, onStartQuestion, onLoadSchema } = {})
         type: 'button',
         class: 'btn btn-primary',
         'data-action': 'start-question',
+        style: { width: '100%', padding: '10px' },
         onClick: () => {
           const topics = [...local.topics];
           if (topics.length === 0) return;
@@ -154,16 +172,46 @@ export function createPracticeView({ root, onStartQuestion, onLoadSchema } = {})
           );
         },
       },
-      ZH.practice.startQuestion,
+      '▶ ' + ZH.practice.startQuestion,
     );
 
+    // Three-column layout: side / main / tutor
     root.appendChild(
       el('section', { class: 'practice-view' },
-        themePicker,
-        difficultyPicker,
-        topicChips,
-        schemaPanel,
-        startBtn,
+        // ── Left sidebar ──
+        el('div', { class: 'practice-side' },
+          el('section', { class: 'panel' },
+            el('div', { class: 'panel-body' },
+              el('div', { class: 'ilabel' }, ZH.practice.themePicker.title),
+              themePicker,
+            ),
+          ),
+          el('section', { class: 'panel' },
+            el('div', { class: 'panel-body' },
+              el('div', { class: 'ilabel' }, '难度'),
+              difficultyPicker,
+            ),
+          ),
+          el('section', { class: 'panel' },
+            el('div', { class: 'panel-body' },
+              el('div', { class: 'ilabel' }, '知识点',
+                local.topics.size > 0
+                  ? el('span', { class: 'meta' }, `${local.topics.size} 选中`)
+                  : null,
+              ),
+              topicChips,
+            ),
+          ),
+        ),
+        // ── Main column ──
+        el('div', { class: 'practice-main' },
+          schemaPanel,
+          el('div', { style: { padding: 'var(--gap-md) 0' } }, startBtn),
+        ),
+        // ── Tutor pane (right column placeholder; main.js mounts tutor-view here) ──
+        el('div', { class: 'practice-tutor', 'data-tutor-mount': '' },
+          // Empty placeholder — main.js or tutor-view fills this on demand.
+        ),
       ),
     );
   }

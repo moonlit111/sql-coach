@@ -109,7 +109,20 @@ export async function boot(appRoot) {
   const routeContainer = el('main', { class: 'app-route', 'data-app-route': '' });
   const dialogContainer = el('div', { class: 'app-dialog', 'data-app-dialog': '' });
   const toastContainer = el('div', { class: 'app-toast', 'data-app-toast': '' });
-  appRoot.appendChild(el('header', {}, el('h1', {}, ZH.app.title), navContainer));
+  appRoot.appendChild(
+    el('header', {},
+      el('h1', {}, 'SQL_COACH'),
+      navContainer,
+      el('div', {
+        'data-model-label': '',
+        style: {
+          fontSize: 'var(--fs-xs)',
+          color: 'var(--tx-3)',
+          marginLeft: 'auto',
+        },
+      }, appStore.state.llm?.modelName ?? 'no model'),
+    ),
+  );
   appRoot.appendChild(routeContainer);
   appRoot.appendChild(dialogContainer);
   appRoot.appendChild(toastContainer);
@@ -240,6 +253,11 @@ export async function boot(appRoot) {
         view.mount({
           schemaSummary: appStore.state.schemaSummary,
         });
+        // Mount the Tutor pane into the right column placeholder.
+        const tutorMount = routeContainer.querySelector('[data-tutor-mount]');
+        if (tutorMount) {
+          mountTutorPane(tutorMount);
+        }
         break;
       case 'history':
         view.mount({ records: appStore.state.history });
@@ -251,6 +269,43 @@ export async function boot(appRoot) {
         });
         break;
     }
+  }
+
+  /** Mount Tutor view into the practice page's right column. */
+  let tutorView = null;
+  function mountTutorPane(target) {
+    // Always rebuild on rerender — the practice view re-renders DOM each time.
+    tutorView = createTutorView({
+      root: target,
+      onSend: async (msg) => {
+        const next = [
+          ...(appStore.state.tutorThread ?? []),
+          { role: 'user', content: msg, at: Date.now() },
+        ];
+        appStore.set({ tutorThread: next, awaitingTutor: true });
+
+        // MVP placeholder: real Tutor agent invocation is wired post-MVP.
+        // Here we produce a contextual reply so the UI is exercised.
+        setTimeout(() => {
+          const reply = appStore.state.question
+            ? '提交答案后我会针对错题给出诊断。请先点击"提交"。'
+            : '请先在主区生成题目，然后我们就可以一起讨论。';
+          appStore.set({
+            tutorThread: [
+              ...appStore.state.tutorThread,
+              { role: 'assistant', content: reply, at: Date.now() },
+            ],
+            awaitingTutor: false,
+          });
+        }, 500);
+      },
+    });
+    tutorView.mount({
+      thread: appStore.state.tutorThread ?? [],
+      awaitingReply: appStore.state.awaitingTutor,
+      refSql: appStore.state.question?.refSql ?? '',
+      refRevealed: false,
+    });
   }
 
   function renderNav() {
@@ -270,6 +325,9 @@ export async function boot(appRoot) {
         ),
       );
     }
+    // Update model name in header
+    const modelLabel = appRoot.querySelector('header > div[data-model-label]');
+    if (modelLabel) modelLabel.textContent = appStore.state.llm?.modelName ?? 'no model';
   }
 
   // Initial render.
@@ -286,7 +344,12 @@ export async function boot(appRoot) {
     const view = views[appStore.state.route];
     if (view && typeof view.update === 'function') {
       switch (appStore.state.route) {
-        case 'practice': view.update({ schemaSummary: appStore.state.schemaSummary }); break;
+        case 'practice':
+          view.update({ schemaSummary: appStore.state.schemaSummary });
+          // Re-mount tutor into the freshly-rendered right column.
+          const tutorMount = routeContainer.querySelector('[data-tutor-mount]');
+          if (tutorMount) mountTutorPane(tutorMount);
+          break;
         case 'history':  view.update({ records: appStore.state.history }); break;
         case 'report':   view.update({ markdown: appStore.state.report ?? '', historyLength: (appStore.state.history ?? []).length }); break;
         case 'settings': view.update({ cfg: appStore.state.llm }); break;
