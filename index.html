@@ -28,26 +28,34 @@
       worker) using bare specifiers like `import 'sql.js'` resolves to the
       same CDN. This keeps R4.3 satisfied — no bundler needed.
 
-      CodeMirror 6 is loaded as ESM via jsdelivr `+esm`. Each sub-package
-      is mapped explicitly so `@codemirror/state` is shared across imports
-      (without explicit mapping the CDN would deliver multiple copies, and
-      CodeMirror's "extension must come from the same StateField module"
-      contract would fail at runtime). `@lezer/highlight` is needed because
-      our HighlightStyle imports the `tags` enum from it.
+      CodeMirror 6 is loaded via esm.sh with `?external=` query strings.
+      This is load-bearing: jsdelivr's `+esm` build (and esm.sh's default
+      build) inline each package's dependencies, so `@codemirror/view`
+      ships with its own copy of `@codemirror/state`, while
+      `@codemirror/lang-sql` ships with another copy. instanceof checks
+      across copies fail at runtime with "Unrecognized extension value
+      in extension set". `?external=...` tells esm.sh to leave those
+      imports unresolved so the importmap below picks the single shared
+      version. Every package must list ALL of its CodeMirror / Lezer
+      deps in the external list — get this wrong on one package and the
+      whole editor refuses to construct an EditorState.
     -->
     <script type="importmap">
       {
         "imports": {
           "sql.js":                    "https://cdn.jsdelivr.net/npm/sql.js@1.11.0/dist/sql-wasm.js",
-          "codemirror":                "https://cdn.jsdelivr.net/npm/codemirror@6.0.1/+esm",
-          "@codemirror/state":         "https://cdn.jsdelivr.net/npm/@codemirror/state@6.4.1/+esm",
-          "@codemirror/view":          "https://cdn.jsdelivr.net/npm/@codemirror/view@6.34.1/+esm",
-          "@codemirror/language":      "https://cdn.jsdelivr.net/npm/@codemirror/language@6.10.3/+esm",
-          "@codemirror/commands":      "https://cdn.jsdelivr.net/npm/@codemirror/commands@6.6.0/+esm",
-          "@codemirror/lang-sql":      "https://cdn.jsdelivr.net/npm/@codemirror/lang-sql@6.8.0/+esm",
-          "@codemirror/autocomplete":  "https://cdn.jsdelivr.net/npm/@codemirror/autocomplete@6.18.1/+esm",
-          "@codemirror/search":        "https://cdn.jsdelivr.net/npm/@codemirror/search@6.5.6/+esm",
-          "@lezer/highlight":          "https://cdn.jsdelivr.net/npm/@lezer/highlight@1.2.1/+esm"
+
+          "@lezer/common":             "https://esm.sh/@lezer/common@1.2.1",
+          "@lezer/lr":                 "https://esm.sh/@lezer/lr@1.4.2?external=@lezer/common",
+          "@lezer/highlight":          "https://esm.sh/@lezer/highlight@1.2.1?external=@lezer/common",
+
+          "@codemirror/state":         "https://esm.sh/@codemirror/state@6.4.1",
+          "@codemirror/view":          "https://esm.sh/@codemirror/view@6.34.1?external=@codemirror/state",
+          "@codemirror/language":      "https://esm.sh/@codemirror/language@6.10.3?external=@codemirror/state,@codemirror/view,@lezer/common,@lezer/lr,@lezer/highlight",
+          "@codemirror/commands":      "https://esm.sh/@codemirror/commands@6.6.0?external=@codemirror/state,@codemirror/view,@codemirror/language,@lezer/common",
+          "@codemirror/autocomplete":  "https://esm.sh/@codemirror/autocomplete@6.18.1?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/commands,@lezer/common",
+          "@codemirror/lang-sql":      "https://esm.sh/@codemirror/lang-sql@6.8.0?external=@codemirror/state,@codemirror/view,@codemirror/language,@codemirror/autocomplete,@lezer/common,@lezer/lr,@lezer/highlight",
+          "@codemirror/search":        "https://esm.sh/@codemirror/search@6.5.6?external=@codemirror/state,@codemirror/view"
         }
       }
     </script>
