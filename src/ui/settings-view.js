@@ -83,6 +83,34 @@ export function createSettingsView({ root, onSave, onClear } = {}) {
             },
           }, p.label),
         ),
+        // Custom preset — clears URL+model so the user can paste any
+        // OpenAI-compatible endpoint and key. Focuses the URL field on
+        // next tick so the user can start typing immediately.
+        el('button', {
+          type: 'button',
+          class: 'btn',
+          style: { marginRight: '6px', marginTop: '4px' },
+          onClick: () => {
+            local.apiBaseUrl = '';
+            local.modelName = '';
+            local.testStatus = '';
+            render();
+            queueMicrotask(() => {
+              const input = root.querySelector('input[data-field="apiBaseUrl"]');
+              if (input && typeof input.focus === 'function') input.focus();
+            });
+          },
+        }, '+ 自定义'),
+        // Hint — explicit about which providers work, since users
+        // wonder whether non-OpenAI vendors can be used here.
+        el('div', {
+          style: {
+            fontSize: 'var(--fs-xxs)',
+            color: 'var(--tx-3)',
+            marginTop: '8px',
+            lineHeight: '1.5',
+          },
+        }, '点「+ 自定义」可填任意 OpenAI 兼容端点（如 Kimi、通义、智谱、Gemini、Grok、Groq、OpenRouter 等）。需提供方支持 POST /chat/completions 与 Bearer Token 鉴权。'),
       ),
 
       // CORS notice — R3.2.
