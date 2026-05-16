@@ -1,4 +1,4 @@
-// Feature: sql-coach, Property 5: Sandbox baseline reset idempotency
+// Feature: sqlense, Property 5: Sandbox baseline reset idempotency
 // Validates: Requirements R10.6, R11.4
 //
 // Uses real sql.js (not mocked). Loads a fixed schema, then for any random

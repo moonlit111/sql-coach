@@ -1,4 +1,4 @@
-// Feature: sql-coach, Property 3: Credential persistence round-trip and clear
+// Feature: sqlense, Property 3: Credential persistence round-trip and clear
 // Validates: Requirements R1.2, R2.1, R2.3, R15.5
 
 import { test, fc } from '@fast-check/vitest';

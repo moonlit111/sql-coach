@@ -1,4 +1,4 @@
-// Feature: sql-coach, Property 8: Difficulty / topic / ordering post-checks
+// Feature: sqlense, Property 8: Difficulty / topic / ordering post-checks
 // Validates: Requirements R5.2, R5.3, R7.4, R8.4, R8.5, R9.1, R9.2, R9.3,
 //            R9.4, R9.5, R9.6, R19.1, R19.2, R19.3
 //

@@ -1,4 +1,4 @@
-// Feature: sql-coach, Property 11: History sort, wrong-only filter, empty-state
+// Feature: sqlense, Property 11: History sort, wrong-only filter, empty-state
 // Validates: Requirements R15.4, R15.5
 
 import { describe, expect, beforeEach, it } from 'vitest';

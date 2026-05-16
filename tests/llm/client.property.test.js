@@ -1,4 +1,4 @@
-// Feature: sql-coach, Property 2: Outbound request allowlist
+// Feature: sqlense, Property 2: Outbound request allowlist
 // Validates: Requirements R1.3, R2.2, R2.4, R4.4, R10.1
 //
 // @vitest-environment node

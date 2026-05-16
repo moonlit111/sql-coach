@@ -59,7 +59,7 @@ export function extractJsonObject(content) {
 /**
  * Vendor-specific request extras, scoped per task class.
  *
- * SQL Coach has two task classes:
+ * SQLense has two task classes:
  *   - `'json'`     SchemaGen / QuestionGen — output strict JSON.
  *                  DeepSeek V4 thinking + JSON mode is unreliable
  *                  (https://api-docs.deepseek.com/guides/json_mode warns

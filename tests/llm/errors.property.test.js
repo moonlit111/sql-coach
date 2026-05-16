@@ -1,4 +1,4 @@
-// Feature: sql-coach, Property 4: LLM error classification coverage and priority
+// Feature: sqlense, Property 4: LLM error classification coverage and priority
 // Validates: Requirements R3.1, R3.3, R14.1, R14.2, R14.3, R14.4, R14.6
 
 import { describe, it, expect } from 'vitest';

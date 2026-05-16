@@ -1,4 +1,4 @@
-// Feature: sql-coach, Property 9: Agent retry count and failure propagation
+// Feature: sqlense, Property 9: Agent retry count and failure propagation
 // Validates: Requirements R6.4, R6.5, R8.7, R8.8, R17.4
 //
 // Property 9 has three obligations:

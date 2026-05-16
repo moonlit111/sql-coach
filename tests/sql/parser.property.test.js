@@ -1,4 +1,4 @@
-// Feature: sql-coach, Property 1: SQL parse-format-parse round-trip consistency
+// Feature: sqlense, Property 1: SQL parse-format-parse round-trip consistency
 // Validates: Requirements R18.1, R18.2, R18.4
 
 import { describe, it, expect } from 'vitest';

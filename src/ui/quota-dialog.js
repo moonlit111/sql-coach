@@ -65,7 +65,7 @@ export function renderQuotaDialog(root, { lastOutcome, store }) {
         onClick: () => {
           try {
             const json = store.exportAll();
-            triggerDownload(json, 'sql-coach-export.json');
+            triggerDownload(json, 'sqlense-export.json');
           } catch {
             /* swallow — UI feedback happens via the toast surface */
           }

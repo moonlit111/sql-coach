@@ -1,4 +1,4 @@
-// SQL 教练 application boot (Task 16.1).
+// SQL 智学 application boot (Task 16.1).
 //
 // Validates: R1.5 (settings completeness gate), R4.2 (open index.html runs),
 // R15.3 (restore most-recent schema and question bank from store),
@@ -1098,7 +1098,7 @@ export async function boot(appRoot) {
     // Re-use the error pipeline with a benign kind so we don't add another
     // surface; UI_ERROR_PRIORITY treats unknown kinds as nothing-to-show.
     // For now log to console and skip toasting — keeping the UI pristine.
-    console.log('[sql-coach]', message);
+    console.log('[sqlense]', message);
   }
 
   /** Mount Tutor view into the practice page's right column. */
@@ -1260,14 +1260,14 @@ if (typeof document !== 'undefined') {
   const root = document.getElementById('app');
   if (root) {
     boot(root).catch((e) => {
-      console.error('[sql-coach] boot failed:', e);
+      console.error('[sqlense] boot failed:', e);
       // Surface the failure so users don't see a blank page.
       clear(root);
       const banner = document.createElement('div');
       banner.style.cssText = 'padding:16px;background:#fee;color:#900;border:1px solid #f99;margin:16px;border-radius:8px;font-family:system-ui,sans-serif;';
       const title = document.createElement('h2');
       title.style.marginTop = '0';
-      title.textContent = 'SQL 教练加载失败';
+      title.textContent = 'SQL 智学加载失败';
       const hint = document.createElement('p');
       hint.textContent = '请打开浏览器控制台（F12）查看详细错误。';
       const detail = document.createElement('pre');

@@ -1,4 +1,4 @@
-// LLM error classification for SQL Coach.
+// LLM error classification for SQLense.
 //
 // Validates: Requirements R3.1, R3.3, R14.1, R14.2, R14.3, R14.4, R14.6
 // Implements: design.md → Property 4 (LLM error classification + priority)

@@ -1,4 +1,4 @@
-// Chinese UI copy for SQL Coach.
+// Chinese UI copy for SQLense.
 // Each key is annotated with the requirement(s) it supports.
 // All strings are user-facing; runtime code SHOULD reference ZH.* rather
 // than inlining literals so the copy stays auditable in one place (R5.1).
@@ -8,7 +8,7 @@ export const ZH = {
   // ------- App shell -------
   app: {
     // R5.1 — interface defaults to Chinese.
-    title: 'SQL 教练',
+    title: 'SQL 智学',
   },
 
   // ------- Navigation -------

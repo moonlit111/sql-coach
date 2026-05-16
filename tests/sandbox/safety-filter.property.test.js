@@ -1,4 +1,4 @@
-// Feature: sql-coach, Property 6: Safety filter exactness
+// Feature: sqlense, Property 6: Safety filter exactness
 // Validates: Requirements R11.1, R11.2
 
 import { describe, it, expect } from 'vitest';

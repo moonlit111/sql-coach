@@ -97,7 +97,7 @@ export function createStore() {
   }
 
   /**
-   * Snapshot of all SQL Coach keys as a JSON string. Used by the UI's
+   * Snapshot of all SQLense keys as a JSON string. Used by the UI's
    * "导出 JSON" dialog when persistence fills up (R15.6).
    * @returns {string}
    */

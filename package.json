@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "SQL 教练 — 纯前端 LLM Agent SQL 学习系统",
+  "description": "SQL 智学 — 纯前端 LLM Agent SQL 学习系统",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",

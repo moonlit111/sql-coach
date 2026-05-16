@@ -1,4 +1,4 @@
-// Shared type definitions for SQL Coach.
+// Shared type definitions for SQLense.
 //
 // This module is the canonical home for JSDoc @typedef blocks used across
 // the codebase. Importing this module (even just for side effects) is enough
@@ -281,4 +281,4 @@ export const STATEMENT_KINDS = Object.freeze([
 
 // Marker export so `import './types.js'` has an observable side effect even
 // when the module is imported solely for its typedefs.
-export const TYPES_MODULE = '@sql-coach/types';
+export const TYPES_MODULE = '@sqlense/types';

@@ -162,7 +162,7 @@ export function createReportView({ root, onGenerate } = {}) {
         heightLeft -= pageH;
       }
       const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      pdf.save(`sql-coach-report-${stamp}.pdf`);
+      pdf.save(`sqlense-report-${stamp}.pdf`);
     } catch (err) {
       // Surface the failure inline — the user wants to know if PDF can't
       // be produced rather than silently see a no-op.
@@ -495,7 +495,7 @@ function downloadMarkdown(text) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'sql-coach-report.md';
+    a.download = 'sqlense-report.md';
     document.body.appendChild(a);
     a.click();
     a.remove();

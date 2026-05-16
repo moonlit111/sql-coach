@@ -1,4 +1,4 @@
-// Feature: sql-coach, Property 12: Persistence failure ⇔ export entry visibility
+// Feature: sqlense, Property 12: Persistence failure ⇔ export entry visibility
 // Validates: Requirements R15.6
 
 import { describe, expect, beforeEach, it } from 'vitest';

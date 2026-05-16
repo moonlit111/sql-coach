@@ -1,4 +1,4 @@
-// Feature: sql-coach, Property 7: Result-set equivalence — symmetry, reflexivity, mode correctness
+// Feature: sqlense, Property 7: Result-set equivalence — symmetry, reflexivity, mode correctness
 // Validates: Requirements R12.1, R12.2, R12.3, R12.4, R12.5, R12.6, R19.4
 
 import { describe, it, expect } from 'vitest';

@@ -1,4 +1,4 @@
-// Feature: sql-coach, Property 10: Tutor context isolation and persistence round-trip
+// Feature: sqlense, Property 10: Tutor context isolation and persistence round-trip
 // Validates: Requirements R13.3, R13.4, R13.5, R15.1, R15.2, R15.3
 //
 // Tests two intertwined invariants:

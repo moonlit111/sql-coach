@@ -2,7 +2,7 @@
 // Validates: R15.1, R15.2, R15.3
 
 /**
- * Canonical localStorage keys used by SQL Coach. Versioned per slot so a
+ * Canonical localStorage keys used by SQLense. Versioned per slot so a
  * future migration can introduce `*.v2` keys without colliding with v1.
  */
 export const PersistKey = Object.freeze({
