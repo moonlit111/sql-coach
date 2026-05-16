@@ -23,7 +23,11 @@ const SYSTEM = `你是 SQL 题目命题助手。基于用户提供的数据库 s
   · 等价的 NOT IN / NOT EXISTS 写法只能写在题面文字里，不要进入 refSql
   · 如果你确实想让 refSql 用 NOT EXISTS（不用 EXCEPT），那么必须保证 NOT EXISTS 真实出现在 refSql 中
 - 当题型为 set_vs_join_compare 时，必须额外输出 refSqlAlt（用另一种写法表达相同语义）
-- 仅当题面要求"按 X 排序"或参考 SQL 含 ORDER BY 时，is_ordered = true
+- 排序一致性（必须严格遵守，否则会被判错重试）：
+  · 若 refSql 含 ORDER BY，则 is_ordered 必须为 true，且题面必须明确写"按 <列> 排序/升序/降序"（推荐写法："按 X 升序排序"或"按 X 降序排序"）
+  · 若题面要求排序，则 refSql 必须含 ORDER BY，且 is_ordered 必须为 true
+  · 若题面没有任何排序要求且 refSql 没有 ORDER BY，则 is_ordered 必须为 false
+  · 三者只要任一不一致就视为错误，不要只在题面里写"展示/列出"却又在 SQL 里加 ORDER BY
 
 输出严格 JSON：
 {

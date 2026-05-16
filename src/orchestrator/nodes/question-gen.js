@@ -491,14 +491,40 @@ export function validateQuestion(q) {
 
   // R19.1 / R19.2 / R19.3 — is_ordered ⇔ parse(refSql).hasOrderBy ∨
   // promptHasOrderHint.
+  //
+  // The original regex (`/按.*?排序/`) only matched the literal phrase
+  // "按 X 排序". In practice the LLM frequently expresses ordering with
+  // synonyms like "按 X 升序排列", "按 X 降序展示", "依 X 升序", and
+  // even bare "升序"/"降序"/"从高到低". When the prompt used a synonym
+  // and the model honestly set `is_ordered: true` (matching its own
+  // refSql's ORDER BY) the validator would reject as "不一致" — leading
+  // to the user-visible failure loop. Broaden the detection to cover
+  // the common synonyms while still requiring the keyword to appear in
+  // an ordering context (preceded by 按/依/以/从, or attached to the
+  // 顺序/升序/降序/从…到… patterns).
   const ast = parse(q.refSql);
   if (ast.error) {
     return { ok: false, reason: `参考 SQL 解析失败：${ast.error}` };
   }
-  const promptOrders   = /按.*?排序/.test(q.prompt);
+  const promptOrders =
+       /按[^，。；\n]{0,40}(排序|排列|排名|排行|展示|显示|输出|返回|列出)/.test(q.prompt)
+    || /(依|以|按)[^，。；\n]{0,40}(升序|降序|顺序)/.test(q.prompt)
+    || /(升序|降序)(排序|排列|输出|展示|返回)/.test(q.prompt)
+    || /从(高到低|低到高|大到小|小到大|新到旧|旧到新)/.test(q.prompt);
   const computedOrdered = ast.hasOrderBy || promptOrders;
   if (Boolean(q.is_ordered) !== Boolean(computedOrdered)) {
-    return { ok: false, reason: 'is_ordered 与参考 SQL/题面排序不一致' };
+    // Spell out *which* side disagrees so the retry prompt can give
+    // the model concrete state to fix instead of a blunt "不一致".
+    return {
+      ok: false,
+      reason:
+        `is_ordered 与参考 SQL/题面排序不一致：`
+        + `is_ordered=${Boolean(q.is_ordered)}, refSql.hasOrderBy=${Boolean(ast.hasOrderBy)}, `
+        + `题面含排序提示=${Boolean(promptOrders)}。`
+        + `请保证三件事一致：(a) 若 refSql 含 ORDER BY，则题面必须写"按 X 排序"，且 is_ordered=true；`
+        + `(b) 若题面要求排序，则 refSql 必须含 ORDER BY，且 is_ordered=true；`
+        + `(c) 否则三者均为 false / 不出现。`,
+    };
   }
 
   // Topic predicates — the AST must support every claimed topic.
