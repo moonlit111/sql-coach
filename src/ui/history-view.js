@@ -449,9 +449,10 @@ function formatTimestamp(ts) {
  *   root: HTMLElement,
  *   store?: { remove: (k: string) => void },
  *   onRedo?: (record: any) => void,
+ *   onClear?: () => void,
  * }} deps
  */
-export function createHistoryView({ root, store, onRedo }) {
+export function createHistoryView({ root, store, onRedo, onClear }) {
   let current = {
     records: [],
     filterWrongOnly: false,
@@ -537,6 +538,7 @@ export function createHistoryView({ root, store, onRedo }) {
         onClick: () => {
           if (store) clearHistory(store);
           current.records = [];
+          onClear?.();
           render();
         },
       }, ZH.history.clear),

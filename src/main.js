@@ -378,6 +378,7 @@ export async function boot(appRoot) {
           root: routeContainer,
           store,
           onRedo: (record) => redoFromHistory(record),
+          onClear: () => { appStore.set({ history: [] }); },
         });
       case 'report':
         return createReportView({
