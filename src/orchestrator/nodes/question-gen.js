@@ -421,16 +421,18 @@ const TOPIC_PREDICATES = {
   set_operation_union:    (ast) => ast.hasSetOp === 'UNION',
   set_operation_intersect:(ast) => ast.hasSetOp === 'INTERSECT',
   set_operation_except:   (ast) => ast.hasSetOp === 'EXCEPT' || ast.hasNotExists,
-  join_inner:             (ast) => ast.hasJoin,
-  join_outer:             (ast) => ast.hasJoin,
-  join_self:              (ast) => ast.hasJoin,
+  join_inner:             (ast) => ast.hasJoin && !ast.hasOuterJoin,
+  join_outer:             (ast) => ast.hasOuterJoin,
+  join_self:              (ast) => ast.hasSelfJoin,
   subquery:               (ast) => ast.hasSubquery,
-  // The remaining topics have no structural test.
+  // Single-table select remains prompt-owned: many valid questions combine
+  // this tag with WHERE / ORDER BY, and the coarse parser does not expose
+  // enough table-scope detail to reject safely.
   single_table_select:    () => true,
-  where_filter:           () => true,
+  where_filter:           (ast) => ast.hasWhere,
   order_by_limit:         (ast) => ast.hasOrderBy,
-  aggregate_function:     () => true,
-  set_vs_join_compare:    () => true,
+  aggregate_function:     (ast) => ast.hasAggregate,
+  set_vs_join_compare:    (ast) => ast.hasSetOp !== null,
 };
 
 /**
@@ -511,16 +513,18 @@ export function validateQuestion(q) {
     || /(依|以|按)[^，。；\n]{0,40}(升序|降序|顺序)/.test(q.prompt)
     || /(升序|降序)(排序|排列|输出|展示|返回)/.test(q.prompt)
     || /从(高到低|低到高|大到小|小到大|新到旧|旧到新)/.test(q.prompt);
-  const computedOrdered = ast.hasOrderBy || promptOrders;
-  if (Boolean(q.is_ordered) !== Boolean(computedOrdered)) {
+  const refOrders = Boolean(ast.hasOrderBy);
+  const promptHasOrder = Boolean(promptOrders);
+  const isOrdered = Boolean(q.is_ordered);
+  if (isOrdered !== refOrders || isOrdered !== promptHasOrder) {
     // Spell out *which* side disagrees so the retry prompt can give
     // the model concrete state to fix instead of a blunt "不一致".
     return {
       ok: false,
       reason:
         `is_ordered 与参考 SQL/题面排序不一致：`
-        + `is_ordered=${Boolean(q.is_ordered)}, refSql.hasOrderBy=${Boolean(ast.hasOrderBy)}, `
-        + `题面含排序提示=${Boolean(promptOrders)}。`
+        + `is_ordered=${isOrdered}, refSql.hasOrderBy=${refOrders}, `
+        + `题面含排序提示=${promptHasOrder}。`
         + `请保证三件事一致：(a) 若 refSql 含 ORDER BY，则题面必须写"按 X 排序"，且 is_ordered=true；`
         + `(b) 若题面要求排序，则 refSql 必须含 ORDER BY，且 is_ordered=true；`
         + `(c) 否则三者均为 false / 不出现。`,
@@ -535,9 +539,19 @@ export function validateQuestion(q) {
     }
   }
 
-  // R9.6 — set_vs_join_compare requires refSqlAlt.
+  // R9.6 — set_vs_join_compare requires refSqlAlt, and the alternate form
+  // must be the JOIN-side expression while refSql carries the set operation.
   if (q.topics.includes('set_vs_join_compare') && !q.refSqlAlt) {
     return { ok: false, reason: 'set_vs_join_compare 必须提供 refSqlAlt' };
+  }
+  if (q.topics.includes('set_vs_join_compare')) {
+    const altAst = parse(q.refSqlAlt);
+    if (altAst.error) {
+      return { ok: false, reason: `refSqlAlt 解析失败：${altAst.error}` };
+    }
+    if (!altAst.hasJoin) {
+      return { ok: false, reason: 'set_vs_join_compare 的 refSqlAlt 必须使用 JOIN 写法' };
+    }
   }
 
   return { ok: true, ast };

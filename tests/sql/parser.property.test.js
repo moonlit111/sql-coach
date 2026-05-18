@@ -123,11 +123,16 @@ describe('SQL parser: round-trip property', () => {
       expect(b.error).toBeUndefined();
       expect(b.kind).toBe(a.kind);
       expect(b.hasOrderBy).toBe(a.hasOrderBy);
+      expect(b.hasLimit).toBe(a.hasLimit);
+      expect(b.hasWhere).toBe(a.hasWhere);
       expect(b.hasGroupBy).toBe(a.hasGroupBy);
       expect(b.hasHaving).toBe(a.hasHaving);
       expect(b.hasJoin).toBe(a.hasJoin);
+      expect(b.hasOuterJoin).toBe(a.hasOuterJoin);
+      expect(b.hasSelfJoin).toBe(a.hasSelfJoin);
       expect(b.hasSubquery).toBe(a.hasSubquery);
       expect(b.hasExists).toBe(a.hasExists);
+      expect(b.hasAggregate).toBe(a.hasAggregate);
       expect(b.hasSetOp).toBe(a.hasSetOp);
     }
   );
@@ -147,15 +152,33 @@ describe('SQL parser: example-based recognition', () => {
     expect(ast.hasOrderBy).toBe(true);
   });
 
+  it('detects WHERE and LIMIT', () => {
+    const ast = parse('SELECT * FROM t WHERE x = 1 LIMIT 10');
+    expect(ast.hasWhere).toBe(true);
+    expect(ast.hasLimit).toBe(true);
+  });
+
   it('detects GROUP BY + HAVING', () => {
     const ast = parse('SELECT a, COUNT(*) FROM t GROUP BY a HAVING COUNT(*) > 1');
     expect(ast.hasGroupBy).toBe(true);
     expect(ast.hasHaving).toBe(true);
+    expect(ast.hasAggregate).toBe(true);
   });
 
   it('detects JOIN', () => {
     const ast = parse('SELECT * FROM a JOIN b ON a.id = b.id');
     expect(ast.hasJoin).toBe(true);
+  });
+
+  it('detects OUTER JOIN and self join separately', () => {
+    const outer = parse('SELECT * FROM a LEFT JOIN b ON a.id = b.a_id');
+    expect(outer.hasJoin).toBe(true);
+    expect(outer.hasOuterJoin).toBe(true);
+    expect(outer.hasSelfJoin).toBe(false);
+
+    const self = parse('SELECT e.id FROM employees e JOIN employees m ON e.manager_id = m.id');
+    expect(self.hasJoin).toBe(true);
+    expect(self.hasSelfJoin).toBe(true);
   });
 
   it('detects EXISTS and subquery', () => {

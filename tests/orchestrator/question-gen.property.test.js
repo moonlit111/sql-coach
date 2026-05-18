@@ -205,6 +205,30 @@ describe('validateQuestion — rejects each violation class', () => {
     expect(r.reason).toMatch(/is_ordered/);
   });
 
+  it('rejects when prompt orders and is_ordered=true but refSql lacks ORDER BY', () => {
+    const q = {
+      ...baseValidL1(),
+      prompt: '查询 users 表的 id，按 id 升序排序',
+      refSql: 'SELECT id FROM users',
+      is_ordered: true,
+    };
+    const r = validateQuestion(q);
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/ORDER BY|is_ordered/);
+  });
+
+  it('rejects when refSql has ORDER BY but the prompt omits the ordering request', () => {
+    const q = {
+      ...baseValidL1(),
+      prompt: '查询 users 表的 id',
+      refSql: 'SELECT id FROM users ORDER BY id',
+      is_ordered: true,
+    };
+    const r = validateQuestion(q);
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/题面含排序提示=false|is_ordered/);
+  });
+
   it('rejects when is_ordered=true but neither refSql nor prompt orders', () => {
     const q = { ...baseValidL1(), is_ordered: true };
     const r = validateQuestion(q);
@@ -278,6 +302,82 @@ describe('validateQuestion — rejects each violation class', () => {
     expect(r.ok).toBe(false);
     expect(r.reason).toMatch(/refSqlAlt/);
   });
+
+  it('rejects where_filter when refSql lacks WHERE', () => {
+    const q = {
+      prompt: '查询满足条件的用户 id',
+      refSql: 'SELECT id FROM users',
+      topics: ['where_filter'],
+      difficulty: 'L1',
+      is_ordered: false,
+    };
+    const r = validateQuestion(q);
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/where_filter/);
+  });
+
+  it('rejects aggregate_function when refSql lacks an aggregate call', () => {
+    const q = {
+      prompt: '查询用户统计信息',
+      refSql: 'SELECT id FROM users',
+      topics: ['aggregate_function'],
+      difficulty: 'L2',
+      is_ordered: false,
+    };
+    const r = validateQuestion(q);
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/aggregate_function/);
+  });
+
+  it('rejects join_outer when refSql only uses an inner join', () => {
+    const q = {
+      prompt: '查询用户和订单信息',
+      refSql: 'SELECT u.id FROM users u JOIN orders o ON o.user_id = u.id',
+      topics: ['join_outer'],
+      difficulty: 'L2',
+      is_ordered: false,
+    };
+    const r = validateQuestion(q);
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/join_outer/);
+  });
+
+  it('rejects join_self when refSql joins two different tables', () => {
+    const q = {
+      prompt: '查询用户和订单信息',
+      refSql: 'SELECT u.id FROM users u JOIN orders o ON o.user_id = u.id',
+      topics: ['join_self'],
+      difficulty: 'L2',
+      is_ordered: false,
+    };
+    const r = validateQuestion(q);
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/join_self/);
+  });
+
+  it('rejects set_vs_join_compare when refSql lacks a set operation', () => {
+    const q = {
+      prompt: '请同时给出集合查询写法与连接查询写法',
+      refSql: 'SELECT id FROM users',
+      refSqlAlt: 'SELECT DISTINCT u.id FROM users u JOIN orders o ON o.user_id = u.id',
+      topics: ['set_vs_join_compare', 'single_table_select'],
+      difficulty: 'L4',
+      is_ordered: false,
+    };
+    const r = validateQuestion(q);
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/set_vs_join_compare/);
+  });
+
+  it('rejects set_vs_join_compare when refSqlAlt is not a JOIN expression', () => {
+    const q = {
+      ...baseValidSetVsJoin(),
+      refSqlAlt: 'SELECT id FROM users',
+    };
+    const r = validateQuestion(q);
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/refSqlAlt|JOIN/);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -290,7 +390,6 @@ const arbDifficulty = fc.constantFrom('L1', 'L2', 'L3', 'L4');
 const arbAsciiRefSql = fc.constantFrom(
   'SELECT id FROM users',
   'SELECT id FROM users WHERE id > 0',
-  'SELECT id FROM users ORDER BY id',
   'SELECT u.id FROM users u JOIN orders o ON o.user_id = u.id',
 );
 
@@ -305,7 +404,7 @@ test.prop(
     difficulty: arbDifficulty,
     topicsBag:  fc.array(
       fc.constantFrom(
-        'single_table_select', 'where_filter',
+        'single_table_select',
       ),
       { minLength: 0, maxLength: 3 },
     ),

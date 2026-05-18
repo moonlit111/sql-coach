@@ -5,6 +5,7 @@ import { tokenize, stripNoise } from './tokenizer.js';
 import { emptyAst } from './ast.js';
 
 const DDL_LEAD = new Set(['CREATE', 'DROP', 'ALTER', 'TRUNCATE', 'ATTACH', 'DETACH', 'PRAGMA']);
+const AGGREGATES = new Set(['COUNT', 'SUM', 'AVG', 'MIN', 'MAX']);
 
 /**
  * @param {string} sql
@@ -53,6 +54,8 @@ export function parse(sql) {
   // Whole-stream scan for flags. Token-aware: string literals are already separate
   // tokens by the tokenizer, so e.g. `'DROP TABLE'` does not yield a DROP keyword token.
   let parenDepth = 0;
+  /** @type {string[]} */
+  const tableRefs = [];
   for (let i = 0; i < sig.length; i++) {
     const t = sig[i];
     const next = sig[i + 1];
@@ -60,6 +63,13 @@ export function parse(sql) {
     if (t.type === 'punctuation') {
       if (t.value === '(') parenDepth++;
       else if (t.value === ')') parenDepth--;
+      continue;
+    }
+    if (t.type === 'identifier') {
+      const ident = normaliseIdentifier(t.value).toUpperCase();
+      if (AGGREGATES.has(ident) && next?.type === 'punctuation' && next.value === '(') {
+        ast.hasAggregate = true;
+      }
       continue;
     }
     if (t.type !== 'keyword') continue;
@@ -74,18 +84,35 @@ export function parse(sql) {
       i++;
       continue;
     }
+    if (t.value === 'LIMIT') ast.hasLimit = true;
+    if (t.value === 'WHERE') ast.hasWhere = true;
     if (t.value === 'HAVING') ast.hasHaving = true;
 
-    if (
-      t.value === 'JOIN' ||
+    const joinModifier =
       t.value === 'INNER' ||
       t.value === 'LEFT' ||
       t.value === 'RIGHT' ||
       t.value === 'FULL' ||
       t.value === 'CROSS' ||
-      t.value === 'NATURAL'
-    ) {
+      t.value === 'NATURAL';
+    const modifierHasJoin =
+      joinModifier &&
+      (
+        next?.value === 'JOIN' ||
+        (next?.value === 'OUTER' && sig[i + 2]?.value === 'JOIN')
+      );
+    if (t.value === 'JOIN' || modifierHasJoin) {
       ast.hasJoin = true;
+    }
+    if ((t.value === 'LEFT' || t.value === 'RIGHT' || t.value === 'FULL') && modifierHasJoin) {
+      ast.hasOuterJoin = true;
+    }
+    if (AGGREGATES.has(t.value) && next?.type === 'punctuation' && next.value === '(') {
+      ast.hasAggregate = true;
+    }
+    if (t.value === 'FROM' || t.value === 'JOIN') {
+      const ref = nextIdentifierValue(sig, i + 1);
+      if (ref) tableRefs.push(ref);
     }
 
     if (t.value === 'EXISTS') {
@@ -110,5 +137,50 @@ export function parse(sql) {
     }
   }
 
+  const seen = new Set();
+  for (const ref of tableRefs) {
+    const key = normaliseIdentifier(ref).toLowerCase();
+    if (!key) continue;
+    if (seen.has(key)) {
+      ast.hasSelfJoin = true;
+      break;
+    }
+    seen.add(key);
+  }
+
   return ast;
+}
+
+/**
+ * @param {Array<{type:string, value:string}>} tokens
+ * @param {number} start
+ * @returns {string | null}
+ */
+function nextIdentifierValue(tokens, start) {
+  for (let i = start; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (t.type === 'punctuation' && t.value === '(') return null;
+    if (t.type === 'identifier') return t.value;
+    if (t.type === 'keyword') return null;
+  }
+  return null;
+}
+
+/**
+ * @param {string} raw
+ */
+function normaliseIdentifier(raw) {
+  const s = String(raw ?? '');
+  if (s.length >= 2) {
+    const first = s[0];
+    const last = s[s.length - 1];
+    if ((first === '`' && last === '`') || (first === '"' && last === '"')) {
+      return s.slice(1, -1).replace(new RegExp(`${escapeRegExp(first)}${escapeRegExp(first)}`, 'g'), first);
+    }
+  }
+  return s;
+}
+
+function escapeRegExp(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

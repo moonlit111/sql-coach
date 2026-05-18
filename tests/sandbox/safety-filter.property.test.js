@@ -103,11 +103,20 @@ describe('safetyFilter — examples', () => {
   it('rejects UPDATE under allowDml=false', () => {
     expect(safetyFilter('UPDATE t SET a = 1', { allowDml: false }).ok).toBe(false);
   });
+  it('rejects UPDATE with a double-quoted identifier under allowDml=false', () => {
+    expect(safetyFilter('UPDATE "t" SET a = 1', { allowDml: false }).ok).toBe(false);
+  });
   it('rejects DELETE under allowDml=false', () => {
     expect(safetyFilter('DELETE FROM t', { allowDml: false }).ok).toBe(false);
   });
+  it('rejects DELETE with a double-quoted identifier under allowDml=false', () => {
+    expect(safetyFilter('DELETE FROM "t"', { allowDml: false }).ok).toBe(false);
+  });
   it('rejects REPLACE under allowDml=false', () => {
     expect(safetyFilter('REPLACE INTO t VALUES (1)', { allowDml: false }).ok).toBe(false);
+  });
+  it('rejects DROP with a double-quoted identifier even if tokenizer sees quoted SQL', () => {
+    expect(safetyFilter('DROP TABLE "t"', { allowDml: true }).ok).toBe(false);
   });
 
   it('accepts INSERT/UPDATE/DELETE/REPLACE under allowDml=true', () => {

@@ -91,11 +91,22 @@ export function tokenize(sql) {
       continue;
     }
 
-    // backtick-quoted identifier
-    if (ch === '`') {
+    // quoted identifiers. MySQL uses backticks; SQLite also accepts double
+    // quotes, and imported schemas/questions commonly contain them. Treat
+    // both as identifier tokens so the safety filter can still see leading
+    // DML/DDL keywords in statements like UPDATE "products" ...
+    if (ch === '`' || ch === '"') {
+      const quote = ch;
       let j = i + 1;
-      while (j < n && sql[j] !== '`') j++;
-      if (j >= n) throw new Error('tokenize: unterminated backtick identifier');
+      while (j < n) {
+        if (sql[j] === quote) {
+          // SQL escapes a quoted identifier delimiter by doubling it.
+          if (sql[j + 1] === quote) { j += 2; continue; }
+          break;
+        }
+        j++;
+      }
+      if (j >= n) throw new Error('tokenize: unterminated quoted identifier');
       j += 1;
       tokens.push({ type: 'identifier', value: sql.slice(i, j), start, end: j });
       i = j;

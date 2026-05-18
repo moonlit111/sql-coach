@@ -6,7 +6,7 @@
 // settings.clear (R2.3), and a static CORS notice (R3.2).
 //
 // On save, the view delegates persistence to the settings module and
-// pushes the new config into the app store via the `onSave` callback.
+// reports the store outcome to the app shell via the `onSave` callback.
 
 import { el, clear } from './dom.js';
 import { ZH } from '../i18n/zh.js';
@@ -15,7 +15,7 @@ import * as settings from '../settings/settings.js';
 /**
  * @param {{
  *   root: HTMLElement,
- *   onSave?: (cfg: { apiBaseUrl: string, apiKey: string, modelName: string }) => void,
+ *   onSave?: (cfg: { apiBaseUrl: string, apiKey: string, modelName: string }, outcome?: { ok: boolean, quotaExceeded?: boolean, error?: string }) => void,
  *   onClear?: () => void,
  * }} deps
  */
@@ -231,9 +231,17 @@ export function createSettingsView({ root, onSave, onClear } = {}) {
       render();
       return;
     }
-    settings.save(cfg);
+    const outcome = settings.save(cfg) ?? { ok: true };
+    if (!outcome.ok) {
+      local.testStatus = outcome.quotaExceeded
+        ? ZH.quota.message
+        : `保存失败：${outcome.error ?? '未知错误'}`;
+      onSave?.(cfg, outcome);
+      render();
+      return;
+    }
     local.testStatus = '已保存。';
-    onSave?.(cfg);
+    onSave?.(cfg, outcome);
     render();
   }
 

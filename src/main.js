@@ -363,8 +363,12 @@ export async function boot(appRoot) {
       case 'settings':
         return createSettingsView({
           root: routeContainer,
-          onSave: (newCfg) => {
-            appStore.set({ llm: newCfg, route: 'practice' });
+          onSave: (newCfg, outcome = { ok: true }) => {
+            if (!outcome.ok) {
+              appStore.set({ lastStoreOutcome: outcome });
+              return;
+            }
+            appStore.set({ llm: newCfg, route: 'practice', lastStoreOutcome: outcome });
             sandbox = null; llmClient = null; graph = null; // force rebuild
           },
           onClear: () => { appStore.set({ llm: null, route: 'settings' }); },
