@@ -15,6 +15,15 @@ const SYSTEM = `你是 SQL 题目命题助手。基于用户提供的数据库 s
 - 字符串字面量内部（'...' 之间）允许中文（用于匹配中文种子数据，如 WHERE name = '张三'）
 - **WHERE / HAVING / JOIN ON 中出现的字面量必须严格来自下方「列级元信息」中"枚举值"或"高频前 K"列出的真实值；数值字面量必须落在"范围"区间内**。不要凭印象编造可能不存在的值（如 'VIP_GOLD'、'category_1'、'2030-01-01'）。
 - 参考 SQL 必须可在该 schema 上执行并返回非空结果。如果不确定某个过滤条件能匹配到行，宁愿放宽（>/<=/IN(...)）或干脆不加 WHERE。
+- **用户指定的"知识点"是硬约束**：参考 SQL 必须真正运用每个指定知识点对应的关键结构。常见映射：
+  · join_inner / join_outer / join_self  →  refSql 必须含 JOIN ... ON
+  · group_by_having                      →  refSql 必须同时含 GROUP BY 和 HAVING
+  · subquery / correlated_subquery       →  refSql 必须含括号内的 SELECT 子查询
+  · exists_not_exists / universal_quantifier → refSql 必须含 EXISTS 或 NOT EXISTS
+  · set_operation_union / intersect / except → refSql 必须含对应的 UNION / INTERSECT / EXCEPT 关键字
+  · order_by_limit                       →  refSql 必须含 ORDER BY
+  · set_vs_join_compare                  →  refSql 用集合写法，refSqlAlt 用 JOIN 写法
+  topics 字段应至少包含全部用户指定的 ID（你可以追加更多 ID）。若用户指定的知识点与所选难度冲突（如 L3 用户只选了基础知识点），请额外追加一个满足难度规则的知识点到 topics，并让 SQL 同时体现两者。
 - L3 难度必须涉及至少一个：相关子查询、EXISTS/NOT EXISTS、全称量词转化(NOT EXISTS)、EXCEPT 差集
 - L4 难度必须组合至少 2 个不同知识点
 - 当题型为 set_operation_except 时：

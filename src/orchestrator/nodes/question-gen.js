@@ -651,28 +651,33 @@ export function createQuestionGenNode({ llmClient, sandbox, onProgress }) {
         // The LLM frequently forgets to echo the difficulty back; attach it.
         parsed.difficulty = state.requestedDifficulty;
 
+        // Same problem with topics — the LLM curates its own topic set that
+        // "fits" the SQL it just wrote, often dropping IDs the user
+        // explicitly picked (e.g. user picks ["join_inner","where_filter"]
+        // but the LLM returns only ["join_inner"]). Merge the user's
+        // requested topics into parsed.topics so the AST-predicate check
+        // inside validateQuestion verifies that the generated SQL actually
+        // supports each requested topic structurally. If a requested topic
+        // has no structural support (e.g. user asked for `exists_not_exists`
+        // but the SQL has no EXISTS), validateQuestion fails with that
+        // topic in the reason and the retry loop feeds it back to the LLM.
+        //
+        // This also keeps L3/L4 difficulty rules working: the LLM is still
+        // free to ADD topics on top of the user's selection (e.g. add a
+        // course-emphasis topic for L3, or pad to ≥2 topics for L4), and
+        // the merge preserves those additions.
+        const requested = state.requestedTopics ?? [];
+        if (requested.length > 0) {
+          const existing = Array.isArray(parsed.topics) ? parsed.topics : [];
+          parsed.topics = [...new Set([...existing, ...requested])];
+        }
+
         emit('validate', attempt, 'running', '检查难度/排序/知识点');
         const v = validateQuestion(parsed);
         if (!v.ok) {
           lastError = v.reason;
           emit('validate', attempt, 'fail', lastError);
           continue;
-        }
-
-        // The LLM frequently picks its own topic set that "fits" the SQL it
-        // wrote, ignoring the user's selection. Force every requested topic
-        // to be present — the AST predicate check inside validateQuestion
-        // already verifies the SQL structurally supports each topic in
-        // parsed.topics, so once we know requestedTopics ⊆ parsed.topics
-        // we know the SQL also exercises them.
-        const requested = state.requestedTopics ?? [];
-        if (requested.length > 0) {
-          const missing = requested.filter((t) => !parsed.topics.includes(t));
-          if (missing.length > 0) {
-            lastError = `生成的题目未覆盖用户选定的知识点：${missing.join('、')}（模型返回的是 ${parsed.topics.join('、')}）。请重新生成，topics 字段必须严格包含 ${requested.join('、')}，且参考 SQL 必须真正运用这些知识点的关键结构。`;
-            emit('validate', attempt, 'fail', lastError);
-            continue;
-          }
         }
         emit('validate', attempt, 'ok');
 
